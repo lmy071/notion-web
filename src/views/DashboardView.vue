@@ -251,6 +251,10 @@ onMounted(() => {
           <span class="glow-text">Notion 核心</span>
         </div>
         <div class="nav-actions">
+          <button @click="router.push('/profile')" class="ghost">
+            <User :size="18" />
+            <span>个人信息</span>
+          </button>
           <button v-if="authStore.role === 'admin'" @click="router.push('/permissions')" class="ghost">
             <Shield :size="18" />
             <span>权限管理</span>

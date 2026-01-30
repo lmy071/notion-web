@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "auto-commit": "node scripts/auto-commit.js"
+    "auto-commit": "node scripts/auto-commit.cjs"
   },
   "dependencies": {
     "@vueuse/core": "^14.1.0",
