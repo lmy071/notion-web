@@ -22,7 +22,8 @@ import {
   Layout,
   CheckCircle2,
   Shield,
-  Power
+  Power,
+  MoreVertical
 } from 'lucide-vue-next';
 
 const router = useRouter();
@@ -38,6 +39,19 @@ const showAddModal = ref(false);
 const showSettingsModal = ref(false);
 const showDeleteModal = ref(false);
 const showRefreshModal = ref(false);
+const activeDropdown = ref(null);
+
+const toggleDropdown = (dbId) => {
+  if (activeDropdown.value === dbId) {
+    activeDropdown.value = null;
+  } else {
+    activeDropdown.value = dbId;
+  }
+};
+
+const closeDropdown = () => {
+  activeDropdown.value = null;
+};
 
 // 表单数据
 const newDb = ref({ databaseId: '', name: '' });
@@ -312,41 +326,45 @@ onMounted(() => {
           <div class="hud-line"></div>
 
           <div class="card-actions">
-            <template v-if="db.status === 1">
-              <button 
-                @click="triggerSync(db.database_id)" 
-                class="sync-btn"
-                :disabled="syncing[db.database_id] || refreshing[db.database_id]"
-              >
-                <RefreshCw :class="{ spinning: syncing[db.database_id] }" :size="16" />
-                {{ syncing[db.database_id] ? '同步中...' : '立即同步' }}
-              </button>
-              <button 
-                @click="confirmRefresh(db)" 
-                class="refresh-schema-btn ghost"
-                :disabled="syncing[db.database_id] || refreshing[db.database_id]"
-                title="更新字段结构"
-              >
-                <Layout :class="{ spinning: refreshing[db.database_id] }" :size="16" />
-              </button>
-              <button 
-                @click="confirmDelete(db)" 
-                class="delete-btn ghost"
-                title="删除连接"
-              >
-                <Trash2 :size="16" />
-              </button>
-            </template>
-            
             <button 
+              v-if="db.status === 1"
+              @click="triggerSync(db.database_id)" 
+              class="sync-btn"
+              :disabled="syncing[db.database_id] || refreshing[db.database_id]"
+            >
+              <RefreshCw :class="{ spinning: syncing[db.database_id] }" :size="16" />
+              {{ syncing[db.database_id] ? '同步中...' : '立即同步' }}
+            </button>
+            <button 
+              v-else
               @click="toggleDatabaseStatus(db)" 
-              class="status-toggle-btn ghost"
-              :class="db.status === 1 ? 'deactivate' : 'activate'"
-              :title="db.status === 1 ? '停用此节点' : '启用此节点'"
+              class="status-toggle-btn activate full-width"
             >
               <Power :size="16" />
-              <span>{{ db.status === 1 ? '停用' : '启用' }}</span>
+              <span>启用节点</span>
             </button>
+
+            <!-- 悬浮操作菜单 -->
+            <div class="floating-actions" v-if="db.status === 1">
+              <button 
+                @click="confirmRefresh(db)" 
+                class="action-item"
+                :disabled="syncing[db.database_id] || refreshing[db.database_id]"
+              >
+                <Layout :size="14" />
+                <span>更新字段结构</span>
+              </button>
+              
+              <button @click="toggleDatabaseStatus(db)" class="action-item">
+                <Power :size="14" />
+                <span>停用链路</span>
+              </button>
+
+              <button @click="confirmDelete(db)" class="action-item delete">
+                <Trash2 :size="14" />
+                <span>删除连接</span>
+              </button>
+            </div>
           </div>
         </TechCard>
 
@@ -619,36 +637,65 @@ main {
 }
 
 .card-actions {
+  position: relative;
   display: flex;
   gap: 1rem;
 }
 
-.status-toggle-btn {
+.floating-actions {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 140px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.db-card:hover .floating-actions {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.action-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.8rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  transition: all 0.3s ease;
+  gap: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
   color: var(--text-dim);
+  transition: all 0.2s;
+  background: transparent;
+  width: 100%;
+  text-align: left;
 }
 
-.status-toggle-btn.activate {
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+.action-item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--primary);
 }
 
-.status-toggle-btn.activate:hover {
-  background: rgba(16, 185, 129, 0.2);
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
-}
-
-.status-toggle-btn.deactivate:hover {
+.action-item.delete:hover {
   color: #ef4444;
   background: rgba(239, 68, 68, 0.1);
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+}
+
+.action-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .sync-btn {
@@ -676,39 +723,30 @@ main {
   cursor: not-allowed;
 }
 
-.delete-btn {
-  width: 40px;
+.status-toggle-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-dim);
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
   transition: all 0.3s ease;
 }
 
-.delete-btn:hover {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+.status-toggle-btn.activate {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-.refresh-schema-btn {
-  width: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-dim);
-  transition: all 0.3s ease;
+.status-toggle-btn.activate:hover {
+  background: rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
 }
 
-.refresh-schema-btn:hover:not(:disabled) {
-  color: var(--primary);
-  background: rgba(56, 189, 248, 0.1);
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
-}
-
-.refresh-schema-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.status-toggle-btn.full-width {
+  width: 100%;
 }
 
 .add-card {
