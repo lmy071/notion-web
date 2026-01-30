@@ -156,6 +156,10 @@ const handlePageChange = (page) => {
   fetchData(page);
 };
 
+const goToPageDetail = (pageId) => {
+  router.push(`/data/${databaseId}/page/${pageId}`);
+};
+
 onMounted(() => fetchData(1));
 </script>
 
@@ -263,7 +267,14 @@ onMounted(() => fetchData(1));
             <tbody>
               <tr v-for="(row, idx) in data" :key="idx">
                 <td v-for="col in columns" :key="col">
-                  <span v-if="col.toLowerCase().includes('id')" class="id-cell">{{ row[col] }}</span>
+                  <span 
+                    v-if="col.toLowerCase().includes('id')" 
+                    class="id-cell clickable"
+                    @click="goToPageDetail(row[col])"
+                    title="点击查看页面详情"
+                  >
+                    {{ row[col] }}
+                  </span>
                   <span v-else>{{ formatCellValue(row[col], col) }}</span>
                 </td>
               </tr>
@@ -646,6 +657,19 @@ tr:hover td {
   background: rgba(0, 0, 0, 0.3);
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
+}
+
+.id-cell.clickable {
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 1px solid transparent;
+}
+
+.id-cell.clickable:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
 }
 
 .loading-state, .empty-state {

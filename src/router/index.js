@@ -6,6 +6,7 @@ import LogsView from '../views/LogsView.vue';
 import DataView from '../views/DataView.vue';
 import PermissionsView from '../views/PermissionsView.vue';
 import ProfileView from '../views/ProfileView.vue';
+import PageDetailView from '../views/PageDetailView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -36,6 +37,12 @@ const router = createRouter({
       path: '/data/:databaseId',
       name: 'data-view',
       component: DataView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/data/:databaseId/page/:pageId',
+      name: 'page-detail',
+      component: PageDetailView,
       meta: { requiresAuth: true }
     },
     {
