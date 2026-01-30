@@ -35,6 +35,7 @@ const currentPage = ref(1);
 const pageSize = ref(50);
 const totalItems = ref(0);
 const totalPages = ref(0);
+const syncLoading = ref({}); // 存储每个 pageId 的同步状态
 
 // 高级检索状态
 const showAdvancedSearch = ref(false);
@@ -160,6 +161,28 @@ const goToPageDetail = (pageId) => {
   router.push(`/data/${databaseId}/page/${pageId}`);
 };
 
+const syncPageDetail = async (pageId) => {
+  if (syncLoading.value[pageId]) return;
+  
+  syncLoading.value[pageId] = true;
+  try {
+    const response = await api.post(`/data/${databaseId}/page/${pageId}/sync`, {}, {
+      headers: { 'x-user-id': authStore.userId }
+    });
+    
+    if (response.data.success) {
+      notify(`页面详情同步成功 (${response.data.count} 个区块)`);
+    } else {
+      notify(response.data.message || '同步失败', 'error');
+    }
+  } catch (error) {
+    console.error('Sync detail error:', error);
+    notify('同步页面详情失败', 'error');
+  } finally {
+    syncLoading.value[pageId] = false;
+  }
+};
+
 onMounted(() => fetchData(1));
 </script>
 
@@ -262,6 +285,7 @@ onMounted(() => fetchData(1));
             <thead>
               <tr>
                 <th v-for="col in columns" :key="col">{{ col.replace(/_/g, ' ').toUpperCase() }}</th>
+                <th class="action-th">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -276,6 +300,16 @@ onMounted(() => fetchData(1));
                     {{ row[col] }}
                   </span>
                   <span v-else>{{ formatCellValue(row[col], col) }}</span>
+                </td>
+                <td class="action-td">
+                  <button 
+                    class="mini-sync-btn" 
+                    @click="syncPageDetail(row[columns.find(c => c.toLowerCase().includes('id'))])"
+                    :disabled="syncLoading[row[columns.find(c => c.toLowerCase().includes('id'))]]"
+                  >
+                    <RefreshCw :size="12" :class="{ spinning: syncLoading[row[columns.find(c => c.toLowerCase().includes('id'))]] }" />
+                    <span>同步详情</span>
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -670,6 +704,37 @@ tr:hover td {
   border-color: var(--primary);
   color: white;
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.action-th, .action-td {
+  text-align: center !important;
+  width: 120px;
+}
+
+.mini-sync-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  color: var(--primary);
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.mini-sync-btn:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: var(--primary);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.mini-sync-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .loading-state, .empty-state {

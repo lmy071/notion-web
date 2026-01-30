@@ -8,7 +8,8 @@ import {
   FileText, 
   ChevronLeft, 
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  AlertTriangle
 } from 'lucide-vue-next';
 
 const route = useRoute();
@@ -18,6 +19,8 @@ const { databaseId, pageId } = route.params;
 
 const blocks = ref([]);
 const loading = ref(true);
+const synced = ref(true);
+const syncMessage = ref('');
 const notifications = ref([]);
 
 const notify = (message, type = 'success') => {
@@ -31,13 +34,19 @@ const removeNotification = (id) => {
 
 const fetchPageDetail = async () => {
   loading.value = true;
+  synced.value = true;
   try {
     const response = await api.get(`/data/${databaseId}/page/${pageId}`, {
       headers: { 'x-user-id': authStore.userId }
     });
     
     if (response.data.success) {
-      blocks.value = response.data.data;
+      if (response.data.synced) {
+        blocks.value = response.data.data;
+      } else {
+        synced.value = false;
+        syncMessage.value = response.data.message;
+      }
     } else {
       notify(response.data.message || '获取详情失败', 'error');
     }
@@ -88,9 +97,16 @@ onMounted(fetchPageDetail);
       <TechCard class="content-card glass">
         <div v-if="loading" class="loading-state">
           <RefreshCw :size="48" class="spinning" color="var(--primary)" />
-          <p>正在递归解析 Notion 节点结构...</p>
+          <p>正在从数据库读取节点结构...</p>
         </div>
         
+        <div v-else-if="!synced" class="unsynced-state">
+          <AlertTriangle :size="48" color="#f59e0b" />
+          <h2>页面尚未同步</h2>
+          <p>{{ syncMessage }}</p>
+          <button @click="goBack" class="primary-btn">返回列表并同步</button>
+        </div>
+
         <div v-else class="notion-content">
           <div v-if="blocks.length === 0" class="empty-state">
             <p>该页面没有可显示的内容块</p>
@@ -115,7 +131,7 @@ onMounted(fetchPageDetail);
               <div class="item-content">
                 <span v-html="renderRichText(block.bulleted_list_item.rich_text)"></span>
                 <!-- 递归渲染子块 -->
-                <div v-if="block.children" class="nested-blocks">
+                <div v-if="block.children && block.children.length > 0" class="nested-blocks">
                   <div v-for="child in block.children" :key="child.id" class="notion-block" :class="child.type">
                      <p v-if="child.type === 'paragraph'" v-html="renderRichText(child.paragraph.rich_text)"></p>
                      <div v-else-if="child.type === 'bulleted_list_item'" class="list-item">
@@ -132,7 +148,7 @@ onMounted(fetchPageDetail);
               <span class="bullet">1.</span>
               <div class="item-content">
                 <span v-html="renderRichText(block.numbered_list_item.rich_text)"></span>
-                <div v-if="block.children" class="nested-blocks">
+                <div v-if="block.children && block.children.length > 0" class="nested-blocks">
                   <!-- 简化处理子块 -->
                 </div>
               </div>
@@ -156,7 +172,7 @@ onMounted(fetchPageDetail);
             <!-- Toggle -->
             <details v-else-if="block.type === 'toggle'" class="toggle-block">
               <summary v-html="renderRichText(block.toggle.rich_text)"></summary>
-              <div v-if="block.children" class="nested-blocks">
+              <div v-if="block.children && block.children.length > 0" class="nested-blocks">
                 <!-- 简化处理 -->
               </div>
             </details>
@@ -347,7 +363,7 @@ blockquote {
   margin-right: 0.5rem;
 }
 
-.loading-state {
+.loading-state, .unsynced-state, .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -355,6 +371,11 @@ blockquote {
   height: 400px;
   gap: 1.5rem;
   color: var(--text-dim);
+}
+
+.unsynced-state h2 {
+  color: white;
+  margin: 0;
 }
 
 .spinning {
