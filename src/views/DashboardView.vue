@@ -21,7 +21,8 @@ import {
   AlertTriangle,
   Layout,
   CheckCircle2,
-  Shield
+  Shield,
+  Power
 } from 'lucide-vue-next';
 
 const router = useRouter();
@@ -184,6 +185,22 @@ const confirmDelete = (db) => {
   showDeleteModal.value = true;
 };
 
+const toggleDatabaseStatus = async (db) => {
+  const newStatus = db.status === 1 ? 0 : 1;
+  try {
+    const response = await api.put(`/databases/${db.id}/status`, { status: newStatus }, {
+      headers: { 'x-user-id': authStore.userId }
+    });
+    if (response.data.success) {
+      db.status = newStatus;
+      notify(newStatus ? '数据库链路已激活' : '数据库链路已挂起');
+      // 重新获取数据以同步总量显示等（可选，这里直接更新状态也行）
+    }
+  } catch (error) {
+    notify('状态切换失败: ' + (error.response?.data?.message || error.message), 'error');
+  }
+};
+
 const handleDeleteDatabase = async () => {
   if (!dbToDelete.value) return;
   
@@ -262,14 +279,16 @@ onMounted(() => {
       </header>
 
       <div class="grid">
-        <TechCard v-for="db in databases" :key="db.database_id" class="db-card">
+        <TechCard v-for="db in databases" :key="db.database_id" class="db-card" :class="{ 'disabled-card': db.status === 0 }">
           <div class="data-badge glass">
             <Hash :size="10" />
             <span>{{ db.total_count || 0 }}</span>
           </div>
           <div class="card-header">
             <Database :size="24" color="var(--primary)" />
-            <h3 @click="router.push(`/data/${db.database_id}`)" class="clickable-title">{{ db.name || '未命名数据库' }}</h3>
+            <h3 @click="db.status === 1 && router.push(`/data/${db.database_id}`)" class="clickable-title" :class="{ 'disabled-text': db.status === 0 }">
+              {{ db.name || '未命名数据库' }}
+            </h3>
           </div>
           <div class="db-id">{{ db.database_id }}</div>
           
@@ -284,35 +303,49 @@ onMounted(() => {
             </div>
             <div class="status-item">
               <span class="label">状态</span>
-              <span class="value status-active">已连接</span>
+              <span class="value" :class="db.status === 1 ? 'status-active' : 'status-disabled'">
+                {{ db.status === 1 ? '已连接' : '已停用' }}
+              </span>
             </div>
           </div>
 
           <div class="hud-line"></div>
 
           <div class="card-actions">
+            <template v-if="db.status === 1">
+              <button 
+                @click="triggerSync(db.database_id)" 
+                class="sync-btn"
+                :disabled="syncing[db.database_id] || refreshing[db.database_id]"
+              >
+                <RefreshCw :class="{ spinning: syncing[db.database_id] }" :size="16" />
+                {{ syncing[db.database_id] ? '同步中...' : '立即同步' }}
+              </button>
+              <button 
+                @click="confirmRefresh(db)" 
+                class="refresh-schema-btn ghost"
+                :disabled="syncing[db.database_id] || refreshing[db.database_id]"
+                title="更新字段结构"
+              >
+                <Layout :class="{ spinning: refreshing[db.database_id] }" :size="16" />
+              </button>
+              <button 
+                @click="confirmDelete(db)" 
+                class="delete-btn ghost"
+                title="删除连接"
+              >
+                <Trash2 :size="16" />
+              </button>
+            </template>
+            
             <button 
-              @click="triggerSync(db.database_id)" 
-              class="sync-btn"
-              :disabled="syncing[db.database_id] || refreshing[db.database_id]"
+              @click="toggleDatabaseStatus(db)" 
+              class="status-toggle-btn ghost"
+              :class="db.status === 1 ? 'deactivate' : 'activate'"
+              :title="db.status === 1 ? '停用此节点' : '启用此节点'"
             >
-              <RefreshCw :class="{ spinning: syncing[db.database_id] }" :size="16" />
-              {{ syncing[db.database_id] ? '同步中...' : '立即同步' }}
-            </button>
-            <button 
-              @click="confirmRefresh(db)" 
-              class="refresh-schema-btn ghost"
-              :disabled="syncing[db.database_id] || refreshing[db.database_id]"
-              title="更新字段结构"
-            >
-              <Layout :class="{ spinning: refreshing[db.database_id] }" :size="16" />
-            </button>
-            <button 
-              @click="confirmDelete(db)" 
-              class="delete-btn ghost"
-              title="删除连接"
-            >
-              <Trash2 :size="16" />
+              <Power :size="16" />
+              <span>{{ db.status === 1 ? '停用' : '启用' }}</span>
             </button>
           </div>
         </TechCard>
@@ -565,9 +598,57 @@ main {
   color: #10b981;
 }
 
+.status-disabled {
+  color: #94a3b8;
+}
+
+.disabled-card {
+  filter: grayscale(0.9);
+  opacity: 0.6;
+  cursor: default !important;
+}
+
+.disabled-card :deep(.tech-card) {
+  cursor: default !important;
+}
+
+.disabled-text {
+  cursor: not-allowed !important;
+  color: var(--text-dim) !important;
+  text-shadow: none !important;
+}
+
 .card-actions {
   display: flex;
   gap: 1rem;
+}
+
+.status-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+  color: var(--text-dim);
+}
+
+.status-toggle-btn.activate {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.status-toggle-btn.activate:hover {
+  background: rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+}
+
+.status-toggle-btn.deactivate:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
 }
 
 .sync-btn {

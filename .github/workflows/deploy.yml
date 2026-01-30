@@ -32,6 +32,6 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
-          source: "dist/*"
-          target: "/www/server"
+          source: "notion-web/*"
+          target: "/www/web"
           strip_components: 1
