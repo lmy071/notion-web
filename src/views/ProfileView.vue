@@ -12,17 +12,21 @@ import {
   Activity, 
   Clock, 
   Save,
-  Info
+  Info,
+  Image as ImageIcon,
+  Link as LinkIcon
 } from 'lucide-vue-next';
 
 const router = useRouter();
 const authStore = useAuthStore();
 const loading = ref(false);
 const formLoading = ref(false);
+const profileLoading = ref(false);
 
 const user = ref({
   username: '',
   role: '',
+  avatar: '',
   created_at: ''
 });
 
@@ -69,6 +73,28 @@ const fetchData = async () => {
   loading.value = false;
 };
 
+const handleSaveProfile = async () => {
+  profileLoading.value = true;
+  try {
+    const response = await api.post('/me/profile', {
+      avatar: user.value.avatar
+    }, {
+      headers: { 'x-user-id': authStore.userId }
+    });
+
+    if (response.data.success) {
+      authStore.updateAvatar(user.value.avatar);
+      notify('个人资料已更新');
+    } else {
+      notify(response.data.message || '更新失败', 'error');
+    }
+  } catch (error) {
+    console.error('更新个人资料失败:', error);
+    notify('更新个人资料失败', 'error');
+  }
+  profileLoading.value = false;
+};
+
 const handleSave = async () => {
   formLoading.value = true;
   try {
@@ -100,30 +126,49 @@ onMounted(fetchData);
     <main v-if="!loading">
       <div class="profile-grid">
         <!-- 用户基本信息 -->
-        <TechCard class="info-card">
-          <div class="card-header">
-            <Info :size="20" color="var(--primary)" />
-            <h3>账号状态</h3>
-          </div>
-          <div class="info-content">
-            <div class="info-item">
-              <span class="label">用户名</span>
-              <span class="value">{{ user.username }}</span>
+        <div class="info-column">
+          <TechCard class="info-card">
+            <div class="card-header">
+              <Info :size="20" color="var(--primary)" />
+              <h3>账号状态</h3>
             </div>
-            <div class="info-item">
-              <span class="label">权限角色</span>
-              <span class="value role-badge" :class="user.role">{{ user.role.toUpperCase() }}</span>
+            <div class="avatar-section">
+              <div class="avatar-wrapper glass">
+                <img v-if="user.avatar" :src="user.avatar" alt="Avatar" />
+                <User v-else :size="40" color="var(--primary)" />
+              </div>
+              <div class="avatar-edit">
+                <label>头像 URL</label>
+                <div class="input-group mini">
+                  <LinkIcon class="input-icon" :size="14" />
+                  <input v-model="user.avatar" type="text" placeholder="https://..." />
+                </div>
+                <button @click="handleSaveProfile" class="mini-btn" :disabled="profileLoading">
+                  {{ profileLoading ? '...' : '应用' }}
+                </button>
+              </div>
             </div>
-            <div class="info-item">
-              <span class="label">注册时间</span>
-              <span class="value">{{ formatDate(user.created_at) }}</span>
+            <div class="divider"></div>
+            <div class="info-content">
+              <div class="info-item">
+                <span class="label">用户名</span>
+                <span class="value">{{ user.username }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">权限角色</span>
+                <span class="value role-badge" :class="user.role">{{ user.role.toUpperCase() }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">注册时间</span>
+                <span class="value">{{ formatDate(user.created_at) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">节点 ID</span>
+                <span class="value id-text">{{ user.id }}</span>
+              </div>
             </div>
-            <div class="info-item">
-              <span class="label">节点 ID</span>
-              <span class="value id-text">{{ user.id }}</span>
-            </div>
-          </div>
-        </TechCard>
+          </TechCard>
+        </div>
 
         <!-- Notion 核心配置 -->
         <TechCard class="config-card">
@@ -234,6 +279,72 @@ main {
 .card-header h3 {
   font-size: 1rem;
   letter-spacing: 1px;
+}
+
+.avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.avatar-wrapper {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--border);
+  background: rgba(0, 0, 0, 0.3);
+  transition: all 0.3s;
+}
+
+.avatar-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-edit {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.avatar-edit label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.input-group.mini {
+  height: 32px;
+}
+
+.input-group.mini input {
+  padding-left: 2.5rem !important;
+  font-size: 0.8rem;
+}
+
+.mini-btn {
+  background: var(--primary);
+  color: var(--bg-dark);
+  border: none;
+  padding: 0.3rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.mini-btn:hover:not(:disabled) {
+  background: white;
+  box-shadow: 0 0 10px var(--primary);
 }
 
 .info-content {

@@ -72,8 +72,11 @@ const goBack = () => {
       <div class="nav-actions">
         <!-- Dashboard 专属动作 -->
         <template v-if="isDashboard">
-          <button @click="router.push('/profile')" class="ghost">
-            <User :size="18" />
+          <button @click="router.push('/profile')" class="ghost profile-btn">
+            <div class="avatar-mini glass" v-if="authStore.avatar">
+              <img :src="authStore.avatar" alt="Avatar" />
+            </div>
+            <User v-else :size="18" />
             <span>个人信息</span>
           </button>
           <button v-if="authStore.role === 'admin'" @click="router.push('/permissions')" class="ghost">
@@ -169,6 +172,24 @@ button {
   gap: 0.5rem;
   padding: 0.5rem 0.8rem;
   font-size: 0.85rem;
+}
+
+.avatar-mini {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.avatar-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-btn {
+  padding-left: 0.4rem;
 }
 
 @media (max-width: 1000px) {
