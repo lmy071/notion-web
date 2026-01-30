@@ -66,15 +66,27 @@ const goBack = () => {
 const renderRichText = (richText) => {
   if (!richText || !Array.isArray(richText)) return '';
   return richText.map(t => {
-    let content = t.plain_text;
-    if (t.annotations.bold) content = `<strong>${content}</strong>`;
-    if (t.annotations.italic) content = `<em>${content}</em>`;
-    if (t.annotations.strikethrough) content = `<del>${content}</del>`;
-    if (t.annotations.underline) content = `<u>${content}</u>`;
-    if (t.annotations.code) content = `<code>${content}</code>`;
+    let content = t.plain_text || '';
+    if (!content) return '';
+    
+    if (t.annotations) {
+      if (t.annotations.bold) content = `<strong>${content}</strong>`;
+      if (t.annotations.italic) content = `<em>${content}</em>`;
+      if (t.annotations.strikethrough) content = `<del>${content}</del>`;
+      if (t.annotations.underline) content = `<u>${content}</u>`;
+      if (t.annotations.code) content = `<code>${content}</code>`;
+    }
+    
     if (t.href) content = `<a href="${t.href}" target="_blank" class="notion-link">${content}</a>`;
     return content;
   }).join('');
+};
+
+const getImageUrl = (image) => {
+  if (!image) return '';
+  const url = image.type === 'external' ? image.external.url : image.file.url;
+  // 清理可能存在的首尾空格或引号
+  return url.trim().replace(/^[`'"]|[`'"]$/g, '');
 };
 
 onMounted(fetchPageDetail);
@@ -149,7 +161,13 @@ onMounted(fetchPageDetail);
               <div class="item-content">
                 <span v-html="renderRichText(block.numbered_list_item.rich_text)"></span>
                 <div v-if="block.children && block.children.length > 0" class="nested-blocks">
-                  <!-- 简化处理子块 -->
+                  <div v-for="child in block.children" :key="child.id" class="notion-block" :class="child.type">
+                    <p v-if="child.type === 'paragraph'" v-html="renderRichText(child.paragraph.rich_text)"></p>
+                    <div v-else-if="child.type === 'numbered_list_item'" class="list-item">
+                      <span class="bullet">1.</span>
+                      <span v-html="renderRichText(child.numbered_list_item.rich_text)"></span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -173,14 +191,20 @@ onMounted(fetchPageDetail);
             <details v-else-if="block.type === 'toggle'" class="toggle-block">
               <summary v-html="renderRichText(block.toggle.rich_text)"></summary>
               <div v-if="block.children && block.children.length > 0" class="nested-blocks">
-                <!-- 简化处理 -->
+                <div v-for="child in block.children" :key="child.id" class="notion-block" :class="child.type">
+                  <p v-if="child.type === 'paragraph'" v-html="renderRichText(child.paragraph.rich_text)"></p>
+                  <div v-else-if="child.type === 'bulleted_list_item'" class="list-item">
+                    <span class="bullet">•</span>
+                    <span v-html="renderRichText(child.bulleted_list_item.rich_text)"></span>
+                  </div>
+                </div>
               </div>
             </details>
 
             <!-- Image -->
             <div v-else-if="block.type === 'image'" class="image-block">
-              <img :src="block.image.type === 'external' ? block.image.external.url : block.image.file.url" alt="Notion Image" />
-              <p v-if="block.image.caption.length > 0" class="caption" v-html="renderRichText(block.image.caption)"></p>
+              <img :src="getImageUrl(block.image)" alt="Notion Image" @error="(e) => e.target.style.display='none'" />
+              <p v-if="block.image.caption && block.image.caption.length > 0" class="caption" v-html="renderRichText(block.image.caption)"></p>
             </div>
 
             <!-- Fallback for unsupported types -->
