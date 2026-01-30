@@ -157,7 +157,9 @@ const handlePageChange = (page) => {
   fetchData(page);
 };
 
-const goToPageDetail = (pageId) => {
+const goToPageDetail = async (pageId) => {
+  // 自动触发一次同步详情，确保内容是最新的
+  await syncPageDetail(pageId);
   router.push(`/data/${databaseId}/page/${pageId}`);
 };
 
@@ -294,9 +296,11 @@ onMounted(() => fetchData(1));
                   <span 
                     v-if="col.toLowerCase().includes('id')" 
                     class="id-cell clickable"
+                    :class="{ loading: syncLoading[row[col]] }"
                     @click="goToPageDetail(row[col])"
-                    title="点击查看页面详情"
+                    title="点击自动同步并查看详情"
                   >
+                    <RefreshCw v-if="syncLoading[row[col]]" :size="10" class="spinning mini-icon" />
                     {{ row[col] }}
                   </span>
                   <span v-else>{{ formatCellValue(row[col], col) }}</span>
@@ -704,6 +708,18 @@ tr:hover td {
   border-color: var(--primary);
   color: white;
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.id-cell.loading {
+  opacity: 0.7;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.mini-icon {
+  color: var(--primary);
 }
 
 .action-th, .action-td {
