@@ -20,6 +20,6 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'notion-web',
+    outDir: 'dist_web',
   },
 });
