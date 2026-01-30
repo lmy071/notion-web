@@ -14,7 +14,8 @@ import {
   Save,
   Info,
   Image as ImageIcon,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Upload
 } from 'lucide-vue-next';
 
 const router = useRouter();
@@ -22,6 +23,7 @@ const authStore = useAuthStore();
 const loading = ref(false);
 const formLoading = ref(false);
 const profileLoading = ref(false);
+const fileInput = ref(null);
 
 const user = ref({
   username: '',
@@ -95,6 +97,53 @@ const handleSaveProfile = async () => {
   profileLoading.value = false;
 };
 
+const triggerFileUpload = () => {
+  fileInput.value.click();
+};
+
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    notify('仅支持上传图片文件', 'error');
+    return;
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    notify('文件大小不能超过 2MB', 'error');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('avatar', file);
+
+  profileLoading.value = true;
+  try {
+    const response = await api.post('/upload/avatar', formData, {
+      headers: { 
+        'x-user-id': authStore.userId,
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    if (response.data.success) {
+      user.value.avatar = response.data.data.url;
+      // 上传成功后自动保存到用户信息
+      await handleSaveProfile();
+    } else {
+      notify(response.data.message || '上传失败', 'error');
+    }
+  } catch (error) {
+    console.error('上传头像失败:', error);
+    notify(error.response?.data?.message || '上传失败', 'error');
+  } finally {
+    profileLoading.value = false;
+    // 清除 input 值，以便可以重复上传同一张图
+    event.target.value = '';
+  }
+};
+
 const handleSave = async () => {
   formLoading.value = true;
   try {
@@ -133,12 +182,23 @@ onMounted(fetchData);
               <h3>账号状态</h3>
             </div>
             <div class="avatar-section">
-              <div class="avatar-wrapper glass">
+              <div class="avatar-wrapper glass clickable" @click="triggerFileUpload">
                 <img v-if="user.avatar" :src="user.avatar" alt="Avatar" />
                 <User v-else :size="40" color="var(--primary)" />
+                <div class="avatar-overlay">
+                  <Upload :size="20" />
+                  <span>上传图片</span>
+                </div>
               </div>
+              <input 
+                type="file" 
+                ref="fileInput" 
+                style="display: none" 
+                accept="image/*"
+                @change="handleFileUpload"
+              />
               <div class="avatar-edit">
-                <label>头像 URL</label>
+                <label>或使用远程头像 URL</label>
                 <div class="input-group mini">
                   <LinkIcon class="input-icon" :size="14" />
                   <input v-model="user.avatar" type="text" placeholder="https://..." />
@@ -300,6 +360,42 @@ main {
   border: 2px solid var(--border);
   background: rgba(0, 0, 0, 0.3);
   transition: all 0.3s;
+  position: relative;
+}
+
+.avatar-wrapper.clickable {
+  cursor: pointer;
+}
+
+.avatar-wrapper:hover {
+  border-color: var(--primary);
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s;
+  color: white;
+}
+
+.avatar-wrapper:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.avatar-overlay span {
+  font-size: 0.7rem;
+  font-weight: bold;
 }
 
 .avatar-wrapper img {
