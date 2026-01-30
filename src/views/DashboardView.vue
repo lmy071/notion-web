@@ -20,7 +20,8 @@ import {
   Trash2,
   AlertTriangle,
   Layout,
-  CheckCircle2
+  CheckCircle2,
+  Shield
 } from 'lucide-vue-next';
 
 const router = useRouter();
@@ -219,6 +220,10 @@ onMounted(() => {
           <span class="glow-text">Notion 核心</span>
         </div>
         <div class="nav-actions">
+          <button v-if="authStore.role === 'admin'" @click="router.push('/permissions')" class="ghost">
+            <Shield :size="18" />
+            <span>权限管理</span>
+          </button>
           <button @click="router.push('/logs')" class="ghost">
             <Terminal :size="18" />
             <span>系统日志</span>

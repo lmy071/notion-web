@@ -4,6 +4,7 @@ import RegisterView from '../views/RegisterView.vue';
 import DashboardView from '../views/DashboardView.vue';
 import LogsView from '../views/LogsView.vue';
 import DataView from '../views/DataView.vue';
+import PermissionsView from '../views/PermissionsView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -31,6 +32,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/permissions',
+      name: 'permissions',
+      component: PermissionsView,
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
       path: '/',
       name: 'dashboard',
       component: DashboardView,
@@ -41,8 +48,12 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const userId = localStorage.getItem('userId');
+  const role = localStorage.getItem('role');
+  
   if (to.meta.requiresAuth && !userId) {
     next({ name: 'login' });
+  } else if (to.meta.requiresAdmin && role !== 'admin') {
+    next({ name: 'dashboard' });
   } else {
     next();
   }
