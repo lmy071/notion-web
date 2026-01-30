@@ -11,8 +11,6 @@ import {
   Key, 
   Activity, 
   Clock, 
-  Shield, 
-  ArrowLeft,
   Save,
   Info
 } from 'lucide-vue-next';
@@ -99,19 +97,6 @@ onMounted(fetchData);
 
 <template>
   <div class="profile-page glass-bg">
-    <nav class="glass">
-      <div class="nav-content">
-        <div class="logo clickable" @click="router.push('/')">
-          <ArrowLeft :size="20" />
-          <span>返回控制台</span>
-        </div>
-        <div class="nav-title">
-          <User :size="20" color="var(--primary)" />
-          <span class="glow-text">个人信息与配置</span>
-        </div>
-      </div>
-    </nav>
-
     <main v-if="!loading">
       <div class="profile-grid">
         <!-- 用户基本信息 -->
@@ -220,47 +205,6 @@ onMounted(fetchData);
   min-height: 100vh;
   padding-top: 100px;
   padding-bottom: 50px;
-}
-
-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 64px;
-  z-index: 100;
-  border-bottom: 1px solid var(--border);
-}
-
-.nav-content {
-  max-width: 1000px;
-  margin: 0 auto;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 2rem;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  color: var(--text-dim);
-  transition: all 0.3s;
-}
-
-.logo:hover {
-  color: var(--primary);
-}
-
-.nav-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-weight: bold;
-  letter-spacing: 1px;
 }
 
 main {

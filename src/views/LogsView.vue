@@ -47,28 +47,20 @@ onMounted(fetchLogs);
 
 <template>
   <div class="logs-page">
-    <nav class="glass">
-      <div class="nav-content">
-        <div class="left">
-          <button @click="router.push('/')" class="back-btn">
-            <ChevronLeft :size="20" />
-            <span>返回控制台</span>
-          </button>
-        </div>
-        <div class="logo">
-          <Terminal :size="24" color="var(--primary)" />
-          <span class="glow-text">系统日志终端</span>
-        </div>
-        <div class="right">
-          <button @click="fetchLogs" class="ghost" :disabled="loading">
-            <RefreshCw :size="18" :class="{ spinning: loading }" />
-            <span>刷新日志</span>
-          </button>
-        </div>
-      </div>
-    </nav>
-
     <main>
+      <header class="page-header">
+        <div class="title-info">
+          <Terminal :size="32" color="var(--primary)" />
+          <div>
+            <h1>日志审计终端</h1>
+            <p>实时监控所有同步任务的底层交互数据</p>
+          </div>
+        </div>
+        <button @click="fetchLogs" class="ghost refresh-btn" :disabled="loading">
+          <RefreshCw :size="18" :class="{ spinning: loading }" />
+          <span>刷新实时日志</span>
+        </button>
+      </header>
       <div class="logs-container glass">
         <div v-if="logs.length === 0" class="empty-logs">
           <Terminal :size="64" opacity="0.1" />
@@ -133,42 +125,35 @@ onMounted(fetchLogs);
   padding-bottom: 40px;
 }
 
-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 64px;
-  z-index: 100;
-  border-bottom: 1px solid var(--border);
-}
-
-.nav-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  height: 100%;
+.page-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
+  align-items: center;
+  margin-bottom: 2rem;
 }
 
-.back-btn {
-  color: var(--text-dim);
-  font-size: 0.9rem;
-}
-
-.back-btn:hover {
-  color: var(--primary);
-  text-shadow: 0 0 10px var(--primary-glow);
-}
-
-.logo {
+.title-info {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-weight: bold;
+  gap: 1.5rem;
+}
+
+.title-info h1 {
+  font-size: 1.5rem;
   letter-spacing: 2px;
+}
+
+.title-info p {
+  font-size: 0.75rem;
+  color: var(--primary);
+  opacity: 0.7;
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
 }
 
 main {

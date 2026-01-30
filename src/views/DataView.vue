@@ -161,26 +161,6 @@ onMounted(() => fetchData(1));
 
 <template>
   <div class="data-page">
-    <nav class="glass">
-      <div class="nav-content">
-        <div class="left">
-          <button @click="router.push('/')" class="back-btn">
-            <ChevronLeft :size="20" />
-            <span>返回控制台</span>
-          </button>
-        </div>
-        <div class="logo">
-          <Database :size="24" color="var(--primary)" />
-          <span class="glow-text">数据核心终端</span>
-        </div>
-        <div class="right">
-          <button @click="fetchData(1)" class="ghost" :disabled="loading">
-            <RefreshCw :size="18" :class="{ spinning: loading }" />
-          </button>
-        </div>
-      </div>
-    </nav>
-
     <main>
       <header class="data-header">
         <div class="title-section">
@@ -349,44 +329,6 @@ onMounted(() => fetchData(1));
   min-height: 100vh;
   padding-top: 80px;
   padding-bottom: 40px;
-}
-
-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 64px;
-  z-index: 100;
-  border-bottom: 1px solid var(--border);
-}
-
-.nav-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 2rem;
-}
-
-.back-btn {
-  color: var(--text-dim);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.back-btn:hover {
-  color: var(--primary);
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-weight: bold;
 }
 
 main {

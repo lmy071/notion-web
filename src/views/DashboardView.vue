@@ -8,23 +8,18 @@ import TechToast from '../components/TechToast.vue';
 import { formatDate } from '../utils/date';
 import { 
   Database, 
-  User,
   RefreshCw, 
   Settings, 
-  LogOut, 
   Activity,
   Cpu,
   Layers,
-  Key,
   Hash,
-  Terminal,
   Trash2,
   AlertTriangle,
   Layout,
-  CheckCircle2,
-  Shield,
   Power,
-  MoreVertical
+  Key,
+  CheckCircle2
 } from 'lucide-vue-next';
 
 const router = useRouter();
@@ -124,11 +119,12 @@ const handleSaveSettings = async () => {
       headers: { 'x-user-id': authStore.userId }
     });
     if (response.data.success) {
-      showSettingsModal.value = false;
       notify('核心配置已更新');
+      showSettingsModal.value = false;
     }
   } catch (error) {
-    notify(error.response?.data?.message || '保存失败', 'error');
+    console.error('保存配置失败:', error);
+    notify('保存配置失败', 'error');
   }
   formLoading.value = false;
 };
@@ -190,10 +186,6 @@ const triggerSyncAll = async () => {
   syncingAll.value = false;
 };
 
-const handleLogout = () => {
-  authStore.logout();
-  window.location.reload();
-};
 
 const confirmDelete = (db) => {
   dbToDelete.value = db;
@@ -245,37 +237,6 @@ onMounted(() => {
 
 <template>
   <div class="dashboard">
-    <nav class="glass">
-      <div class="nav-content">
-        <div class="logo">
-          <Cpu :size="24" color="var(--primary)" />
-          <span class="glow-text">Notion 核心</span>
-        </div>
-        <div class="nav-actions">
-          <button @click="router.push('/profile')" class="ghost">
-            <User :size="18" />
-            <span>个人信息</span>
-          </button>
-          <button v-if="authStore.role === 'admin'" @click="router.push('/permissions')" class="ghost">
-            <Shield :size="18" />
-            <span>权限管理</span>
-          </button>
-          <button @click="router.push('/logs')" class="ghost">
-            <Terminal :size="18" />
-            <span>系统日志</span>
-          </button>
-          <button @click="showSettingsModal = true" class="ghost">
-            <Settings :size="18" />
-            <span>核心配置</span>
-          </button>
-          <button @click="handleLogout" class="danger-ghost">
-            <LogOut :size="18" />
-            <span>断开连接</span>
-          </button>
-        </div>
-      </div>
-    </nav>
-
     <main>
       <header class="main-header">
         <div class="header-info">
@@ -473,34 +434,6 @@ onMounted(() => {
 .dashboard {
   min-height: 100vh;
   padding-top: 80px;
-}
-
-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 64px;
-  z-index: 100;
-  border-bottom: 1px solid var(--border);
-}
-
-.nav-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 2rem;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-weight: bold;
-  letter-spacing: 2px;
 }
 
 main {
