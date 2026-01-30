@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { 
@@ -17,6 +17,7 @@ import {
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const avatarError = ref(false);
 
 const isDashboard = computed(() => route.path === '/');
 const isLoginOrRegister = computed(() => ['/login', '/register'].includes(route.path));
@@ -40,6 +41,18 @@ const pageIcon = computed(() => {
 const handleLogout = () => {
   authStore.logout();
   router.push('/login');
+};
+
+const getAvatarUrl = (url) => {
+  avatarError.value = false;
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  // 确保相对路径以 / 开头
+  return url.startsWith('/') ? url : `/${url}`;
+};
+
+const handleAvatarError = () => {
+  avatarError.value = true;
 };
 
 const goBack = () => {
@@ -73,8 +86,8 @@ const goBack = () => {
         <!-- Dashboard 专属动作 -->
         <template v-if="isDashboard">
           <button @click="router.push('/profile')" class="ghost profile-btn">
-            <div class="avatar-mini glass" v-if="authStore.avatar">
-              <img :src="authStore.avatar" alt="Avatar" />
+            <div class="avatar-mini glass" v-if="authStore.avatar && !avatarError">
+              <img :src="getAvatarUrl(authStore.avatar)" alt="Avatar" @error="handleAvatarError" />
             </div>
             <User v-else :size="18" />
             <span>个人信息</span>

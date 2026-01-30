@@ -48,6 +48,19 @@ const removeNotification = (id) => {
   notifications.value = notifications.value.filter(n => n.id !== id);
 };
 
+const avatarError = ref(false);
+
+const getAvatarUrl = (url) => {
+  avatarError.value = false; // 重置错误状态
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  return url.startsWith('/') ? url : `/${url}`;
+};
+
+const handleAvatarError = () => {
+  avatarError.value = true;
+};
+
 const fetchData = async () => {
   loading.value = true;
   try {
@@ -183,7 +196,9 @@ onMounted(fetchData);
             </div>
             <div class="avatar-section">
               <div class="avatar-wrapper glass clickable" @click="triggerFileUpload">
-                <img v-if="user.avatar" :src="user.avatar" alt="Avatar" />
+                <template v-if="user.avatar && !avatarError">
+                  <img :src="getAvatarUrl(user.avatar)" alt="Avatar" @error="handleAvatarError" />
+                </template>
                 <User v-else :size="40" color="var(--primary)" />
                 <div class="avatar-overlay">
                   <Upload :size="20" />
