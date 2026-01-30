@@ -8,6 +8,7 @@ import TechToast from '../components/TechToast.vue';
 import { formatDate } from '../utils/date';
 import { 
   Database, 
+  User,
   RefreshCw, 
   Settings, 
   LogOut, 
