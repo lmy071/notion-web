@@ -12,6 +12,7 @@ import {
   Code
 } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
+import { formatDate } from '../utils/date';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -88,7 +89,7 @@ onMounted(fetchLogs);
               </div>
               <div class="time">
                 <Clock :size="14" />
-                <span>{{ new Date(log.created_at).toLocaleString() }}</span>
+                <span>{{ formatDate(log.created_at) }}</span>
               </div>
             </div>
             
