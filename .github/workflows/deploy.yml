@@ -37,5 +37,5 @@ jobs:
           password: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
           source: "notion-web/notion-web"
-          target: "/www/web"
+          target: "/www/web/notion-web"
           strip_components: 1
