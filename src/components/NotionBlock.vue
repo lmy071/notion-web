@@ -53,6 +53,15 @@ const getImageUrl = (image) => {
     <!-- Heading 3 -->
     <h3 v-else-if="block.type === 'heading_3'" v-html="renderRichText(block.heading_3.rich_text)"></h3>
     
+    <!-- Heading 4 -->
+    <h4 v-else-if="block.type === 'heading_4'" v-html="renderRichText(block.heading_4.rich_text)"></h4>
+    
+    <!-- Heading 5 -->
+    <h5 v-else-if="block.type === 'heading_5'" v-html="renderRichText(block.heading_5.rich_text)"></h5>
+    
+    <!-- Heading 6 -->
+    <h6 v-else-if="block.type === 'heading_6'" v-html="renderRichText(block.heading_6.rich_text)"></h6>
+    
     <!-- Paragraph -->
     <p v-else-if="block.type === 'paragraph'" v-html="renderRichText(block.paragraph.rich_text)"></p>
     
@@ -186,6 +195,9 @@ const getImageUrl = (image) => {
 h1 { font-size: 1.8rem; margin-top: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; color: var(--primary); }
 h2 { font-size: 1.5rem; margin-top: 1.5rem; color: var(--primary); opacity: 0.9; }
 h3 { font-size: 1.25rem; margin-top: 1.2rem; color: var(--primary); opacity: 0.8; }
+h4 { font-size: 1.15rem; margin-top: 1.1rem; color: var(--primary); opacity: 0.75; }
+h5 { font-size: 1.05rem; margin-top: 1rem; color: var(--primary); opacity: 0.7; }
+h6 { font-size: 1rem; margin-top: 0.9rem; color: var(--primary); opacity: 0.65; }
 p { font-size: 1rem; margin-bottom: 0.5rem; min-height: 1.2em; }
 
 .list-item {
