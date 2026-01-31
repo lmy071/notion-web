@@ -357,8 +357,8 @@ main {
 }
 
 .result-card:hover {
-  transform: translateY(-5px);
   border-color: var(--primary);
+  background: rgba(56, 189, 248, 0.05);
 }
 
 .card-content {

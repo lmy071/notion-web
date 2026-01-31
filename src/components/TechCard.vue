@@ -5,11 +5,6 @@ import { useMouseInElement } from '@vueuse/core';
 const target = ref(null);
 const { elementX, elementY, isOutside, elementHeight, elementWidth } = useMouseInElement(target);
 
-const cardStyle = ref({
-  transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg)',
-  transition: 'transform 0.1s ease-out'
-});
-
 const glowStyle = ref({
   opacity: 0,
   left: '0px',
@@ -18,16 +13,10 @@ const glowStyle = ref({
 
 const handleMouseMove = () => {
   if (isOutside.value) {
-    cardStyle.value.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
     glowStyle.value.opacity = 0;
     return;
   }
 
-  const rotateX = ((elementY.value / elementHeight.value) - 0.5) * -10;
-  const rotateY = ((elementX.value / elementWidth.value) - 0.5) * 10;
-
-  cardStyle.value.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-  
   glowStyle.value = {
     opacity: 1,
     left: `${elementX.value}px`,
@@ -49,7 +38,6 @@ onUnmounted(() => {
   <div 
     ref="target"
     class="tech-card glass"
-    :style="cardStyle"
   >
     <div class="glow" :style="glowStyle"></div>
     <div class="content">
