@@ -11,7 +11,10 @@ import {
   RefreshCw,
   ExternalLink,
   AlertTriangle,
-  Layout
+  Layout,
+  Share2,
+  Copy,
+  Check
 } from 'lucide-vue-next';
 
 const route = useRoute();
@@ -27,6 +30,17 @@ const loading = ref(true);
 const synced = ref(true);
 const syncMessage = ref('');
 const notifications = ref([]);
+
+// 分享相关状态
+const showShareModal = ref(false);
+const shareConfig = ref(null);
+const isSharing = ref(false);
+const shareLinkCopied = ref(false);
+
+const shareLink = computed(() => {
+  if (!shareConfig.value?.share_token) return '';
+  return `${window.location.origin}/share/${shareConfig.value.share_token}`;
+});
 
 const notify = (message, type = 'success') => {
   const id = Date.now();
@@ -99,6 +113,56 @@ const triggerSync = async () => {
   }
 };
 
+const fetchShareConfig = async () => {
+  try {
+    const response = await api.get(`/shares/${pageId}`, {
+      headers: { 'x-user-id': authStore.userId }
+    });
+    if (response.data.success) {
+      shareConfig.value = response.data.data;
+      isSharing.value = shareConfig.value?.is_active === 1;
+    }
+  } catch (error) {
+    console.error('Fetch share config error:', error);
+  }
+};
+
+const toggleShare = async () => {
+  try {
+    const response = await api.post(`/shares/${pageId}`, {
+      is_active: !isSharing.value
+    }, {
+      headers: { 'x-user-id': authStore.userId }
+    });
+    
+    if (response.data.success) {
+      shareConfig.value = response.data.data;
+      isSharing.value = shareConfig.value.is_active === 1;
+      notify(isSharing.value ? '分享已开启' : '分享已关闭');
+    }
+  } catch (error) {
+    notify('更新分享状态失败', 'error');
+  }
+};
+
+const copyShareLink = () => {
+  if (!shareConfig.value?.share_token) return;
+  
+  const link = `${window.location.origin}/share/${shareConfig.value.share_token}`;
+  navigator.clipboard.writeText(link).then(() => {
+    shareLinkCopied.value = true;
+    setTimeout(() => {
+      shareLinkCopied.value = false;
+    }, 2000);
+    notify('链接已复制到剪贴板');
+  });
+};
+
+const openShareModal = async () => {
+  showShareModal.value = true;
+  await fetchShareConfig();
+};
+
 onMounted(fetchPageDetail);
 </script>
 
@@ -114,6 +178,17 @@ onMounted(fetchPageDetail);
           <Layout v-if="isWorkspacePage" :size="24" color="var(--primary)" />
           <FileText v-else :size="24" color="var(--primary)" />
           <h1>{{ isWorkspacePage ? '工作区页面分析' : '页面详情分析' }}</h1>
+          
+          <div class="header-actions">
+            <button @click="openShareModal" class="share-btn ghost-btn">
+              <Share2 :size="18" />
+              <span>分享</span>
+            </button>
+            <button @click="triggerSync" class="sync-btn ghost-btn" :disabled="loading">
+              <RefreshCw :size="18" :class="{ spinning: loading }" />
+              <span>重新同步</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -152,6 +227,49 @@ onMounted(fetchPageDetail);
         </div>
       </TechCard>
     </main>
+
+    <!-- 分享弹窗 -->
+    <div v-if="showShareModal" class="modal-overlay" @click.self="showShareModal = false">
+      <TechCard class="share-modal glass">
+        <header class="modal-header">
+          <h2>页面分享配置</h2>
+          <button @click="showShareModal = false" class="close-btn">&times;</button>
+        </header>
+        
+        <div class="modal-content">
+          <div class="share-toggle">
+            <div class="info">
+              <h3>开启公共访问</h3>
+              <p>允许任何人通过链接查看此页面的已同步内容</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" :checked="isSharing" @change="toggleShare">
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <div v-if="isSharing" class="share-link-section">
+            <div class="link-label">分享链接</div>
+            <div class="link-input-group">
+              <input 
+                type="text" 
+                readonly 
+                :value="shareLink || '正在生成...'"
+              >
+              <button @click="copyShareLink" class="copy-btn">
+                <Check v-if="shareLinkCopied" :size="18" color="#10b981" />
+                <Copy v-else :size="18" />
+              </button>
+            </div>
+            <p class="hint">注意：仅已同步到数据库的内容会被分享显示</p>
+          </div>
+        </div>
+
+        <footer class="modal-footer">
+          <button @click="showShareModal = false" class="primary-btn">完成</button>
+        </footer>
+      </TechCard>
+    </div>
 
     <div class="notifications-container">
       <TechToast 
@@ -208,9 +326,212 @@ main {
   letter-spacing: 2px;
 }
 
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 1rem;
+}
+
+.ghost-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.ghost-btn:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.ghost-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .content-card {
   padding: 3rem;
   min-height: 500px;
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.share-modal {
+  width: 500px;
+  padding: 2rem;
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.modal-header h2 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.share-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.share-toggle h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+}
+
+.share-toggle p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.share-link-section {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.link-label {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-dim);
+}
+
+.link-input-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.link-input-group input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: var(--primary);
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+.copy-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.copy-btn:hover {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: var(--primary);
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: #f59e0b;
+  margin: 0;
+}
+
+.modal-footer {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Switch 样式 */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: var(--primary);
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
 }
 
 .notion-content {

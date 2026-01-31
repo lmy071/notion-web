@@ -8,6 +8,7 @@ import PermissionsView from '../views/PermissionsView.vue';
 import ProfileView from '../views/ProfileView.vue';
 import PageDetailView from '../views/PageDetailView.vue';
 import NotionWorkspace from '../views/NotionWorkspace.vue';
+import SharedPageView from '../views/SharedPageView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,6 +28,11 @@ const router = createRouter({
       name: 'profile',
       component: ProfileView,
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/share/:token',
+      name: 'public-share',
+      component: SharedPageView
     },
     {
       path: '/workspace',
