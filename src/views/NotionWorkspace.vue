@@ -21,10 +21,12 @@ const authStore = useAuthStore();
 const query = ref('');
 const results = ref([]);
 const loading = ref(false);
+const bulkSyncLoading = ref(false);
 const syncLoading = ref({});
 const notifications = ref([]);
 const nextCursor = ref(null);
 const hasMore = ref(false);
+const isSynced = ref(true);
 
 const notify = (message, type = 'success') => {
   const id = Date.now();
@@ -41,45 +43,57 @@ const searchNotion = async (isLoadMore = false) => {
   loading.value = true;
   try {
     const params = {
-      query: query.value,
-      pageSize: 50
+      query: query.value
     };
-    if (isLoadMore && nextCursor.value) {
-      params.cursor = nextCursor.value;
-    }
-
-    const response = await api.get('/notion/search', {
+    
+    // 改为默认从数据库获取
+    const response = await api.get('/notion/workspace/list', {
       params,
       headers: { 'x-user-id': authStore.userId }
     });
 
     if (response.data.success) {
-      const newResults = response.data.data.results;
-      if (isLoadMore) {
-        results.value = [...results.value, ...newResults];
-      } else {
-        results.value = newResults;
-      }
-      nextCursor.value = response.data.data.next_cursor;
-      hasMore.value = response.data.data.has_more;
+      results.value = response.data.data.results;
+      isSynced.value = response.data.synced;
+      // 数据库分页逻辑暂未实现，这里重置分页状态
+      nextCursor.value = null;
+      hasMore.value = false;
     } else {
-      notify(response.data.message || '搜索失败', 'error');
+      notify(response.data.message || '获取列表失败', 'error');
     }
   } catch (error) {
-    console.error('Search error:', error);
-    notify('搜索请求失败', 'error');
+    console.error('Fetch error:', error);
+    notify('获取列表失败', 'error');
   } finally {
     loading.value = false;
   }
 };
 
-const getTitle = (item) => {
-  if (item.object === 'database') {
-    return item.title?.[0]?.plain_text || '未命名数据库';
+const syncWorkspace = async () => {
+  if (bulkSyncLoading.value) return;
+  
+  bulkSyncLoading.value = true;
+  try {
+    const response = await api.post('/notion/workspace/sync', {}, {
+      headers: { 'x-user-id': authStore.userId }
+    });
+    
+    if (response.data.success) {
+      notify(`同步完成，共发现 ${response.data.count} 个对象`);
+      await searchNotion();
+    } else {
+      notify(response.data.message || '同步失败', 'error');
+    }
+  } catch (error) {
+    console.error('Sync workspace error:', error);
+    notify('同步请求失败', 'error');
+  } finally {
+    bulkSyncLoading.value = false;
   }
-  // 页面标题可能在 properties.title 或 properties.Name 中
-  const titleProp = item.properties?.title || item.properties?.Name || item.properties?.Name;
-  return titleProp?.title?.[0]?.plain_text || '未命名页面';
+};
+
+const getTitle = (item) => {
+  return item.title_from_db || item.title?.[0]?.plain_text || '未命名';
 };
 
 const getIcon = (item) => {
@@ -146,18 +160,29 @@ onMounted(() => {
           <input 
             v-model="query" 
             type="text" 
-            placeholder="搜索页面或数据库标题..." 
+            placeholder="在已同步的数据中搜索..." 
             @keyup.enter="searchNotion(false)"
           />
-          <button @click="searchNotion(false)" class="search-btn" :disabled="loading">
-            <RefreshCw v-if="loading" :size="18" class="spinning" />
-            <span v-else>搜索</span>
-          </button>
+          <div class="action-buttons">
+            <button @click="searchNotion(false)" class="search-btn" :disabled="loading">
+              <RefreshCw v-if="loading" :size="18" class="spinning" />
+              <span v-else>搜索</span>
+            </button>
+            <button @click="syncWorkspace" class="sync-bulk-btn" :disabled="bulkSyncLoading">
+              <RefreshCw v-if="bulkSyncLoading" :size="18" class="spinning" />
+              <span v-else>同步工作区</span>
+            </button>
+          </div>
         </div>
       </div>
 
       <div class="results-grid">
-        <div v-if="results.length === 0 && !loading" class="no-results glass">
+        <div v-if="!isSynced && results.length === 0" class="no-results glass">
+          <RefreshCw :size="48" opacity="0.5" />
+          <p>尚未同步工作区数据</p>
+          <button @click="syncWorkspace" class="primary-btn">立即同步</button>
+        </div>
+        <div v-else-if="results.length === 0 && !loading" class="no-results glass">
           <FileText :size="48" opacity="0.5" />
           <p>没有找到相关内容</p>
         </div>
@@ -260,7 +285,7 @@ main {
   padding: 0.5rem 0.5rem 0.5rem 1.5rem;
   border-radius: 50px;
   width: 100%;
-  max-width: 600px;
+  max-width: 800px;
   border: 1px solid var(--border);
 }
 
@@ -278,11 +303,16 @@ main {
   outline: none;
 }
 
-.search-btn {
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.search-btn, .sync-bulk-btn {
   background: var(--primary);
   color: black;
   border: none;
-  padding: 0.8rem 2rem;
+  padding: 0.8rem 1.5rem;
   border-radius: 25px;
   font-weight: bold;
   cursor: pointer;
@@ -290,11 +320,23 @@ main {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
 }
 
-.search-btn:hover:not(:disabled) {
+.sync-bulk-btn {
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.search-btn:hover:not(:disabled), .sync-bulk-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(56, 189, 248, 0.4);
+  box-shadow: 0 5px 15px rgba(56, 189, 248, 0.2);
+}
+
+.sync-bulk-btn:hover:not(:disabled) {
+  background: var(--primary);
+  color: black;
 }
 
 .search-btn:disabled {
