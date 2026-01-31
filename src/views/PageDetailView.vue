@@ -1,21 +1,26 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore, api } from '../stores/auth';
 import TechCard from '../components/TechCard.vue';
 import TechToast from '../components/TechToast.vue';
+import NotionBlock from '../components/NotionBlock.vue';
 import { 
   FileText, 
   ChevronLeft, 
   RefreshCw,
   ExternalLink,
-  AlertTriangle
+  AlertTriangle,
+  Layout
 } from 'lucide-vue-next';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const { databaseId, pageId } = route.params;
+
+// 判断是否是工作区页面 (没有 databaseId)
+const isWorkspacePage = computed(() => !databaseId);
 
 const blocks = ref([]);
 const loading = ref(true);
@@ -36,7 +41,11 @@ const fetchPageDetail = async () => {
   loading.value = true;
   synced.value = true;
   try {
-    const response = await api.get(`/data/${databaseId}/page/${pageId}`, {
+    const endpoint = isWorkspacePage.value 
+      ? `/notion/page/${pageId}` 
+      : `/data/${databaseId}/page/${pageId}`;
+      
+    const response = await api.get(endpoint, {
       headers: { 'x-user-id': authStore.userId }
     });
     
@@ -59,34 +68,35 @@ const fetchPageDetail = async () => {
 };
 
 const goBack = () => {
-  router.push(`/data/${databaseId}`);
+  if (isWorkspacePage.value) {
+    router.push('/workspace');
+  } else {
+    router.push(`/data/${databaseId}`);
+  }
 };
 
-// 递归渲染块的辅助函数
-const renderRichText = (richText) => {
-  if (!richText || !Array.isArray(richText)) return '';
-  return richText.map(t => {
-    let content = t.plain_text || '';
-    if (!content) return '';
+const triggerSync = async () => {
+  loading.value = true;
+  try {
+    const endpoint = isWorkspacePage.value 
+      ? `/notion/page/${pageId}/sync` 
+      : `/data/${databaseId}/page/${pageId}/sync`;
+      
+    const response = await api.post(endpoint, {}, {
+      headers: { 'x-user-id': authStore.userId }
+    });
     
-    if (t.annotations) {
-      if (t.annotations.bold) content = `<strong>${content}</strong>`;
-      if (t.annotations.italic) content = `<em>${content}</em>`;
-      if (t.annotations.strikethrough) content = `<del>${content}</del>`;
-      if (t.annotations.underline) content = `<u>${content}</u>`;
-      if (t.annotations.code) content = `<code>${content}</code>`;
+    if (response.data.success) {
+      notify('同步成功');
+      await fetchPageDetail();
+    } else {
+      notify(response.data.message || '同步失败', 'error');
     }
-    
-    if (t.href) content = `<a href="${t.href}" target="_blank" class="notion-link">${content}</a>`;
-    return content;
-  }).join('');
-};
-
-const getImageUrl = (image) => {
-  if (!image) return '';
-  const url = image.type === 'external' ? image.external.url : image.file.url;
-  // 清理可能存在的首尾空格或引号
-  return url.trim().replace(/^[`'"]|[`'"]$/g, '');
+  } catch (error) {
+    notify('同步请求失败', 'error');
+  } finally {
+    loading.value = false;
+  }
 };
 
 onMounted(fetchPageDetail);
@@ -98,120 +108,46 @@ onMounted(fetchPageDetail);
       <header class="detail-header">
         <button @click="goBack" class="back-btn ghost">
           <ChevronLeft :size="20" />
-          <span>返回列表</span>
+          <span>返回{{ isWorkspacePage ? '工作区' : '列表' }}</span>
         </button>
         <div class="title-section">
-          <FileText :size="24" color="var(--primary)" />
-          <h1>页面详情分析</h1>
+          <Layout v-if="isWorkspacePage" :size="24" color="var(--primary)" />
+          <FileText v-else :size="24" color="var(--primary)" />
+          <h1>{{ isWorkspacePage ? '工作区页面分析' : '页面详情分析' }}</h1>
         </div>
       </header>
 
       <TechCard class="content-card glass">
         <div v-if="loading" class="loading-state">
           <RefreshCw :size="48" class="spinning" color="var(--primary)" />
-          <p>正在从数据库读取节点结构...</p>
+          <p>正在获取节点结构...</p>
         </div>
         
         <div v-else-if="!synced" class="unsynced-state">
           <AlertTriangle :size="48" color="#f59e0b" />
           <h2>页面尚未同步</h2>
           <p>{{ syncMessage }}</p>
-          <button @click="goBack" class="primary-btn">返回列表并同步</button>
+          <div class="actions">
+            <button @click="triggerSync" class="primary-btn">立即同步</button>
+            <button @click="goBack" class="ghost">返回</button>
+          </div>
         </div>
 
         <div v-else class="notion-content">
           <div v-if="blocks.length === 0" class="empty-state">
             <p>该页面没有可显示的内容块</p>
+            <button @click="triggerSync" class="ghost-btn">
+              <RefreshCw :size="16" />
+              <span>重新同步</span>
+            </button>
           </div>
 
-          <div v-for="block in blocks" :key="block.id" class="notion-block" :class="block.type">
-            <!-- Heading 1 -->
-            <h1 v-if="block.type === 'heading_1'" v-html="renderRichText(block.heading_1.rich_text)"></h1>
-            
-            <!-- Heading 2 -->
-            <h2 v-else-if="block.type === 'heading_2'" v-html="renderRichText(block.heading_2.rich_text)"></h2>
-            
-            <!-- Heading 3 -->
-            <h3 v-else-if="block.type === 'heading_3'" v-html="renderRichText(block.heading_3.rich_text)"></h3>
-            
-            <!-- Paragraph -->
-            <p v-else-if="block.type === 'paragraph'" v-html="renderRichText(block.paragraph.rich_text)"></p>
-            
-            <!-- Bulleted List Item -->
-            <div v-else-if="block.type === 'bulleted_list_item'" class="list-item">
-              <span class="bullet">•</span>
-              <div class="item-content">
-                <span v-html="renderRichText(block.bulleted_list_item.rich_text)"></span>
-                <!-- 递归渲染子块 -->
-                <div v-if="block.children && block.children.length > 0" class="nested-blocks">
-                  <div v-for="child in block.children" :key="child.id" class="notion-block" :class="child.type">
-                     <p v-if="child.type === 'paragraph'" v-html="renderRichText(child.paragraph.rich_text)"></p>
-                     <div v-else-if="child.type === 'bulleted_list_item'" class="list-item">
-                        <span class="bullet">•</span>
-                        <span v-html="renderRichText(child.bulleted_list_item.rich_text)"></span>
-                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Numbered List Item -->
-            <div v-else-if="block.type === 'numbered_list_item'" class="list-item">
-              <span class="bullet">1.</span>
-              <div class="item-content">
-                <span v-html="renderRichText(block.numbered_list_item.rich_text)"></span>
-                <div v-if="block.children && block.children.length > 0" class="nested-blocks">
-                  <div v-for="child in block.children" :key="child.id" class="notion-block" :class="child.type">
-                    <p v-if="child.type === 'paragraph'" v-html="renderRichText(child.paragraph.rich_text)"></p>
-                    <div v-else-if="child.type === 'numbered_list_item'" class="list-item">
-                      <span class="bullet">1.</span>
-                      <span v-html="renderRichText(child.numbered_list_item.rich_text)"></span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Code -->
-            <pre v-else-if="block.type === 'code'" class="code-block">
-              <code>{{ block.code.rich_text.map(t => t.plain_text).join('') }}</code>
-              <span class="lang-badge">{{ block.code.language }}</span>
-            </pre>
-
-            <!-- To Do -->
-            <div v-else-if="block.type === 'to_do'" class="todo-item">
-              <input type="checkbox" :checked="block.to_do.checked" disabled />
-              <span v-html="renderRichText(block.to_do.rich_text)" :class="{ checked: block.to_do.checked }"></span>
-            </div>
-
-            <!-- Quote -->
-            <blockquote v-else-if="block.type === 'quote'" v-html="renderRichText(block.quote.rich_text)"></blockquote>
-
-            <!-- Toggle -->
-            <details v-else-if="block.type === 'toggle'" class="toggle-block">
-              <summary v-html="renderRichText(block.toggle.rich_text)"></summary>
-              <div v-if="block.children && block.children.length > 0" class="nested-blocks">
-                <div v-for="child in block.children" :key="child.id" class="notion-block" :class="child.type">
-                  <p v-if="child.type === 'paragraph'" v-html="renderRichText(child.paragraph.rich_text)"></p>
-                  <div v-else-if="child.type === 'bulleted_list_item'" class="list-item">
-                    <span class="bullet">•</span>
-                    <span v-html="renderRichText(child.bulleted_list_item.rich_text)"></span>
-                  </div>
-                </div>
-              </div>
-            </details>
-
-            <!-- Image -->
-            <div v-else-if="block.type === 'image'" class="image-block">
-              <img :src="getImageUrl(block.image)" alt="Notion Image" @error="(e) => e.target.style.display='none'" />
-              <p v-if="block.image.caption && block.image.caption.length > 0" class="caption" v-html="renderRichText(block.image.caption)"></p>
-            </div>
-
-            <!-- Fallback for unsupported types -->
-            <div v-else class="unsupported-block">
-              <span class="type-tag">[{{ block.type }}]</span>
-              <span>暂不支持渲染该类型的块</span>
-            </div>
+          <div class="blocks-container">
+            <NotionBlock 
+              v-for="block in blocks" 
+              :key="block.id" 
+              :block="block" 
+            />
           </div>
         </div>
       </TechCard>

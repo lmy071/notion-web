@@ -7,6 +7,7 @@ import DataView from '../views/DataView.vue';
 import PermissionsView from '../views/PermissionsView.vue';
 import ProfileView from '../views/ProfileView.vue';
 import PageDetailView from '../views/PageDetailView.vue';
+import NotionWorkspace from '../views/NotionWorkspace.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -25,6 +26,18 @@ const router = createRouter({
       path: '/profile',
       name: 'profile',
       component: ProfileView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/workspace',
+      name: 'workspace',
+      component: NotionWorkspace,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/workspace/page/:pageId',
+      name: 'workspace-page-detail',
+      component: PageDetailView,
       meta: { requiresAuth: true }
     },
     {

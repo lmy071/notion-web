@@ -26,6 +26,8 @@ const pageTitle = computed(() => {
   if (route.path === '/profile') return '个人信息与配置';
   if (route.path === '/logs') return '系统日志终端';
   if (route.path === '/permissions') return '权限管理中心';
+  if (route.path === '/workspace') return 'Notion工作区';
+  if (route.path.startsWith('/workspace/page/')) return '页面详情分析';
   if (route.path.startsWith('/data/')) return '数据核心终端';
   return 'Notion 核心';
 });
@@ -34,6 +36,7 @@ const pageIcon = computed(() => {
   if (route.path === '/profile') return User;
   if (route.path === '/logs') return Terminal;
   if (route.path === '/permissions') return Shield;
+  if (route.path === '/workspace' || route.path.startsWith('/workspace/page/')) return Layout;
   if (route.path.startsWith('/data/')) return Database;
   return Cpu;
 });
@@ -85,6 +88,10 @@ const goBack = () => {
       <div class="nav-actions">
         <!-- Dashboard 专属动作 -->
         <template v-if="isDashboard">
+          <button @click="router.push('/workspace')" class="ghost">
+            <Layout :size="18" />
+            <span>Notion工作区</span>
+          </button>
           <button @click="router.push('/profile')" class="ghost profile-btn">
             <div class="avatar-mini glass" v-if="authStore.avatar && !avatarError">
               <img :src="getAvatarUrl(authStore.avatar)" alt="Avatar" @error="handleAvatarError" />
