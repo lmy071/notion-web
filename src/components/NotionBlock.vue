@@ -1,5 +1,6 @@
 <script setup>
 import { defineProps } from 'vue';
+import { ExternalLink } from 'lucide-vue-next';
 
 const props = defineProps({
   block: {
@@ -97,6 +98,44 @@ const getImageUrl = (image) => {
       <p v-if="block.image.caption && block.image.caption.length > 0" class="caption" v-html="renderRichText(block.image.caption)"></p>
     </div>
 
+    <!-- Table -->
+    <div v-else-if="block.type === 'table'" class="table-wrapper">
+      <table class="notion-table">
+        <tbody>
+          <tr 
+            v-for="(row, rowIndex) in block.children" 
+            :key="row.id" 
+            :class="{ 'header-row': block.table.has_column_header && rowIndex === 0 }"
+          >
+            <td 
+              v-for="(cell, cellIndex) in row.table_row?.cells" 
+              :key="cellIndex" 
+              v-html="renderRichText(cell)"
+            ></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Callout -->
+    <div v-else-if="block.type === 'callout'" class="callout-block" :style="{ backgroundColor: block.callout.color === 'default' ? 'rgba(56, 189, 248, 0.05)' : block.callout.color }">
+      <div class="callout-icon" v-if="block.callout.icon">
+        <span v-if="block.callout.icon.type === 'emoji'">{{ block.callout.icon.emoji }}</span>
+        <img v-else-if="block.callout.icon.type === 'external'" :src="block.callout.icon.external.url" class="icon-img" />
+      </div>
+      <div class="callout-content" v-html="renderRichText(block.callout.rich_text)"></div>
+    </div>
+
+    <!-- Bookmark -->
+    <a v-else-if="block.type === 'bookmark'" :href="block.bookmark.url" target="_blank" class="bookmark-block glass">
+      <div class="bookmark-content">
+        <div class="bookmark-url">{{ block.bookmark.url }}</div>
+      </div>
+      <div class="bookmark-icon">
+        <ExternalLink :size="16" />
+      </div>
+    </a>
+
     <!-- Child Page (Recursively Rendered if synced) -->
     <div v-else-if="block.type === 'child_page'" class="child-page-block">
       <div class="child-page-header">
@@ -117,13 +156,17 @@ const getImageUrl = (image) => {
     <hr v-else-if="block.type === 'divider'" class="notion-divider" />
 
     <!-- Fallback for unsupported types -->
-    <div v-else class="unsupported-block">
+    <div v-else-if="block.type !== 'table_row'" class="unsupported-block">
       <span class="type-tag">[{{ block.type }}]</span>
       <span>暂不支持渲染该类型的块</span>
     </div>
 
     <!-- Recursive children rendering -->
-    <div v-if="block.children && block.children.length > 0" class="nested-blocks" :class="{ 'is-toggle-content': block.type === 'toggle' }">
+    <div 
+      v-if="block.children && block.children.length > 0 && block.type !== 'table'" 
+      class="nested-blocks" 
+      :class="{ 'is-toggle-content': block.type === 'toggle' }"
+    >
       <NotionBlock 
         v-for="child in block.children" 
         :key="child.id" 
@@ -220,6 +263,94 @@ blockquote {
 
 .toggle-block summary:hover {
   opacity: 0.8;
+}
+
+.table-wrapper {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.notion-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.notion-table td {
+  border: 1px solid var(--border);
+  padding: 0.8rem 1rem;
+  color: var(--text);
+}
+
+.header-row {
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.header-row td {
+  font-weight: bold;
+  color: var(--primary);
+}
+
+.callout-block {
+  display: flex;
+  gap: 1rem;
+  padding: 1.2rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.callout-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.callout-content {
+  flex: 1;
+  color: var(--text);
+}
+
+.bookmark-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  transition: all 0.3s;
+}
+
+.bookmark-block:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.bookmark-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.bookmark-url {
+  font-size: 0.8rem;
+  color: var(--primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bookmark-icon {
+  color: var(--text-dim);
+  margin-left: 1rem;
 }
 
 .image-block {
