@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore, api } from '../stores/auth';
 import TechCard from '../components/TechCard.vue';
@@ -162,6 +162,14 @@ const openShareModal = async () => {
   showShareModal.value = true;
   await fetchShareConfig();
 };
+
+// 监听路由参数变化，支持在不同页面间跳转
+watch(
+  () => [route.params.databaseId, route.params.pageId],
+  () => {
+    fetchPageDetail();
+  }
+);
 
 onMounted(fetchPageDetail);
 </script>

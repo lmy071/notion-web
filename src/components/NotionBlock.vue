@@ -1,5 +1,6 @@
 <script setup>
 import { defineProps } from 'vue';
+import { useRouter } from 'vue-router';
 import { ExternalLink } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -12,6 +13,14 @@ const props = defineProps({
     default: 0
   }
 });
+
+const router = useRouter();
+
+const goToPage = (pageId) => {
+  if (!pageId) return;
+  // 统一跳转到工作区详情页面，该页面支持展示任意 pageId 的内容
+  router.push(`/workspace/page/${pageId}`);
+};
 
 const renderRichText = (richText) => {
   if (!richText || !Array.isArray(richText)) return '';
@@ -146,7 +155,11 @@ const getImageUrl = (image) => {
     </a>
 
     <!-- Child Page (Recursively Rendered if synced) -->
-    <div v-else-if="block.type === 'child_page'" class="child-page-block">
+    <div 
+      v-else-if="block.type === 'child_page'" 
+      class="child-page-block clickable"
+      @click="goToPage(block.id)"
+    >
       <div class="child-page-header">
         <span class="icon">📄</span>
         <span class="title">{{ block.child_page.title }}</span>
@@ -154,7 +167,11 @@ const getImageUrl = (image) => {
     </div>
 
     <!-- Child Database -->
-    <div v-else-if="block.type === 'child_database'" class="child-database-block">
+    <div 
+      v-else-if="block.type === 'child_database'" 
+      class="child-database-block clickable"
+      @click="goToPage(block.id)"
+    >
       <div class="child-database-header">
         <span class="icon">🗂️</span>
         <span class="title">{{ block.child_database.title }}</span>
@@ -382,6 +399,17 @@ blockquote {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
   margin: 0.3rem 0;
+}
+
+.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clickable:hover {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: var(--primary);
+  transform: translateX(4px);
 }
 
 .child-page-header, .child-database-header {
