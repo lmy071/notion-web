@@ -248,8 +248,35 @@ const getImageUrl = (image) => getFileUrl(image);
       </div>
     </div>
 
+    <!-- Equation -->
+    <div v-else-if="block.type === 'equation'" class="equation-block">
+      <div class="equation-content">
+        {{ block.equation.expression }}
+      </div>
+    </div>
+
+    <!-- Embed -->
+    <div v-else-if="block.type === 'embed'" class="embed-block glass">
+      <iframe :src="block.embed.url" frameborder="0" allowfullscreen></iframe>
+      <div class="embed-caption" v-if="block.embed.caption" v-html="renderRichText(block.embed.caption)"></div>
+    </div>
+
+    <!-- Table of Contents -->
+    <div v-else-if="block.type === 'table_of_contents'" class="toc-block glass">
+      <div class="toc-header">
+        <span class="icon">📑</span>
+        <span>页面目录</span>
+      </div>
+    </div>
+
+    <!-- Breadcrumb -->
+    <div v-else-if="block.type === 'breadcrumb'" class="breadcrumb-block">
+      <span class="icon">🧭</span>
+      <span>导航路径</span>
+    </div>
+
     <!-- Fallback for unsupported types -->
-    <div v-else-if="block.type !== 'table_row'" class="unsupported-block">
+    <div v-else-if="!['table_row', 'template'].includes(block.type)" class="unsupported-block">
       <span class="type-tag">[{{ block.type }}]</span>
       <span>暂不支持渲染该类型的块</span>
     </div>
@@ -258,7 +285,7 @@ const getImageUrl = (image) => getFileUrl(image);
     <div 
       v-if="block.children && block.children.length > 0 && !['table', 'child_page', 'child_database', 'column_list', 'column', 'synced_block'].includes(block.type)" 
       class="nested-blocks" 
-      :class="{ 'is-toggle-content': block.type === 'toggle' }"
+      :class="{ 'is-toggle-content': block.type === 'toggle', 'is-template': block.type === 'template' }"
     >
       <NotionBlock 
         v-for="child in block.children" 
@@ -577,12 +604,62 @@ blockquote {
   opacity: 0.9;
 }
 
-.unsupported-block {
+.equation-block {
+  text-align: center;
+  padding: 1rem 0;
+  font-family: 'Fira Code', monospace;
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+
+.embed-block {
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.embed-block iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.embed-caption {
+  padding: 0.8rem;
   font-size: 0.8rem;
   color: var(--text-dim);
-  opacity: 0.5;
+  border-top: 1px solid var(--border);
+}
+
+.toc-block, .breadcrumb-block {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 1.2rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.toc-header {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.is-template {
+  border-left-style: dashed;
+}
+
+.unsupported-block {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  opacity: 0.4;
   font-style: italic;
-  padding: 0.2rem 0;
+  padding: 0.1rem 0;
 }
 
 .type-tag {
