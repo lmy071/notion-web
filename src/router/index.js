@@ -7,6 +7,7 @@ import DataView from '../views/DataView.vue';
 import PermissionsView from '../views/PermissionsView.vue';
 import ProfileView from '../views/ProfileView.vue';
 import PageDetailView from '../views/PageDetailView.vue';
+import DataPreviewView from '../views/DataPreviewView.vue';
 import NotionWorkspace from '../views/NotionWorkspace.vue';
 import SharedPageView from '../views/SharedPageView.vue';
 
@@ -44,6 +45,12 @@ const router = createRouter({
       path: '/workspace/page/:pageId',
       name: 'workspace-page-detail',
       component: PageDetailView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/workspace/database/:databaseId/preview',
+      name: 'database-preview',
+      component: DataPreviewView,
       meta: { requiresAuth: true }
     },
     {

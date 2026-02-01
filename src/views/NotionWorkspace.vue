@@ -12,7 +12,8 @@ import {
   RefreshCw,
   ExternalLink,
   Calendar,
-  User
+  User,
+  Eye
 } from 'lucide-vue-next';
 
 const router = useRouter();
@@ -111,8 +112,14 @@ const formatDate = (dateStr) => {
 };
 
 const syncAndGoToDetail = async (item) => {
+  if (item.object === 'database') {
+    // 数据库跳转到实时预览页面
+    router.push(`/workspace/database/${item.id}/preview`);
+    return;
+  }
+  
   if (item.object !== 'page') {
-    notify('目前仅支持查看页面详情', 'info');
+    notify('目前仅支持预览页面或数据库', 'info');
     return;
   }
 
@@ -210,7 +217,10 @@ onMounted(() => {
             </div>
             <div class="action-icon">
               <RefreshCw v-if="syncLoading[item.id]" :size="20" class="spinning color-primary" />
-              <ChevronRight v-else :size="20" />
+              <template v-else>
+                <Eye v-if="item.object === 'database'" :size="20" color="var(--primary)" />
+                <ChevronRight v-else :size="20" />
+              </template>
             </div>
           </div>
         </TechCard>
