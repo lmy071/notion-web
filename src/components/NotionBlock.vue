@@ -181,6 +181,26 @@ const getImageUrl = (image) => {
     <!-- Divider -->
     <hr v-else-if="block.type === 'divider'" class="notion-divider" />
 
+    <!-- Column List -->
+    <div v-else-if="block.type === 'column_list'" class="column-list">
+      <NotionBlock 
+        v-for="child in block.children" 
+        :key="child.id" 
+        :block="child" 
+        :level="level + 1"
+      />
+    </div>
+
+    <!-- Column -->
+    <div v-else-if="block.type === 'column'" class="column-block">
+      <NotionBlock 
+        v-for="child in block.children" 
+        :key="child.id" 
+        :block="child" 
+        :level="level + 1"
+      />
+    </div>
+
     <!-- Fallback for unsupported types -->
     <div v-else-if="block.type !== 'table_row'" class="unsupported-block">
       <span class="type-tag">[{{ block.type }}]</span>
@@ -189,7 +209,7 @@ const getImageUrl = (image) => {
 
     <!-- Recursive children rendering -->
     <div 
-      v-if="block.children && block.children.length > 0 && block.type !== 'table' && block.type !== 'child_page' && block.type !== 'child_database'" 
+      v-if="block.children && block.children.length > 0 && block.type !== 'table' && block.type !== 'child_page' && block.type !== 'child_database' && block.type !== 'column_list' && block.type !== 'column'" 
       class="nested-blocks" 
       :class="{ 'is-toggle-content': block.type === 'toggle' }"
     >
@@ -427,6 +447,25 @@ blockquote {
   border: none;
   border-top: 1px solid var(--border);
   margin: 1.5rem 0;
+}
+
+.column-list {
+  display: flex;
+  gap: 1.5rem;
+  margin: 1rem 0;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .column-list {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+.column-block {
+  flex: 1;
+  min-width: 0;
 }
 
 .unsupported-block {
