@@ -123,26 +123,9 @@ const syncAndGoToDetail = async (item) => {
     return;
   }
 
-  const pageId = item.id;
-  syncLoading.value[pageId] = true;
-  
-  try {
-    // 自动触发同步
-    const syncRes = await api.post(`/notion/page/${pageId}/sync`, {}, {
-      headers: { 'x-user-id': authStore.userId }
-    });
-    
-    if (syncRes.data.success) {
-      router.push(`/workspace/page/${pageId}`);
-    } else {
-      notify(syncRes.data.message || '同步失败', 'error');
-    }
-  } catch (error) {
-    console.error('Sync error:', error);
-    notify('同步详情失败', 'error');
-  } finally {
-    syncLoading.value[pageId] = false;
-  }
+  // 不再自动触发同步，直接跳转到详情页
+  // 详情页会根据数据库是否有数据来决定是否提示同步
+  router.push(`/workspace/page/${item.id}`);
 };
 
 onMounted(() => {

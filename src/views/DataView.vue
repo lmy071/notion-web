@@ -158,8 +158,8 @@ const handlePageChange = (page) => {
 };
 
 const goToPageDetail = async (pageId) => {
-  // 自动触发一次同步详情，确保内容是最新的
-  await syncPageDetail(pageId);
+  // 不再自动触发同步，直接跳转到详情页
+  // 详情页会根据数据库是否有数据来决定是否提示同步
   router.push(`/data/${databaseId}/page/${pageId}`);
 };
 
