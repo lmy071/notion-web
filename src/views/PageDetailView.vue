@@ -20,10 +20,9 @@ import {
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
-const { databaseId, pageId } = route.params;
 
 // 判断是否是工作区页面 (没有 databaseId)
-const isWorkspacePage = computed(() => !databaseId);
+const isWorkspacePage = computed(() => !route.params.databaseId);
 
 const blocks = ref([]);
 const pageTitle = ref('');
@@ -53,6 +52,9 @@ const removeNotification = (id) => {
 };
 
 const fetchPageDetail = async () => {
+  const { databaseId, pageId } = route.params;
+  if (!pageId) return;
+  
   loading.value = true;
   synced.value = true;
   try {
@@ -84,6 +86,7 @@ const fetchPageDetail = async () => {
 };
 
 const goBack = () => {
+  const { databaseId } = route.params;
   if (isWorkspacePage.value) {
     router.push('/workspace');
   } else {
@@ -92,6 +95,7 @@ const goBack = () => {
 };
 
 const triggerSync = async () => {
+  const { databaseId, pageId } = route.params;
   loading.value = true;
   try {
     const endpoint = isWorkspacePage.value 
@@ -116,6 +120,7 @@ const triggerSync = async () => {
 };
 
 const fetchShareConfig = async () => {
+  const { pageId } = route.params;
   try {
     const response = await api.get(`/shares/${pageId}`, {
       headers: { 'x-user-id': authStore.userId }
@@ -130,6 +135,7 @@ const fetchShareConfig = async () => {
 };
 
 const toggleShare = async () => {
+  const { pageId } = route.params;
   try {
     const response = await api.post(`/shares/${pageId}`, {
       is_active: !isSharing.value
