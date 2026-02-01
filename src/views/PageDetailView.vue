@@ -28,6 +28,9 @@ const blocks = ref([]);
 const pageTitle = ref('');
 const breadcrumbs = ref([]);
 const loading = ref(true);
+const isSynced = ref(false);
+const syncLoading = ref(false);
+const errorMsg = ref('');
 const synced = ref(true);
 const syncMessage = ref('');
 const notifications = ref([]);
@@ -57,7 +60,8 @@ const fetchPageDetail = async () => {
   if (!pageId) return;
   
   loading.value = true;
-  synced.value = true;
+  isSynced.value = false;
+  errorMsg.value = '';
   try {
     const endpoint = isWorkspacePage.value 
       ? `/notion/page/${pageId}` 
@@ -72,9 +76,13 @@ const fetchPageDetail = async () => {
         blocks.value = response.data.data;
         pageTitle.value = response.data.title || '';
         breadcrumbs.value = response.data.breadcrumbs || [];
+        isSynced.value = true;
       } else {
-        synced.value = false;
-        syncMessage.value = response.data.message;
+        isSynced.value = false;
+        errorMsg.value = response.data.message || '该页面尚未同步';
+        // 即使没同步，也可能返回了标题和面包屑
+        pageTitle.value = response.data.title || '';
+        breadcrumbs.value = response.data.breadcrumbs || [];
       }
     } else {
       notify(response.data.message || '获取详情失败', 'error');
@@ -98,7 +106,7 @@ const goBack = () => {
 
 const triggerSync = async () => {
   const { databaseId, pageId } = route.params;
-  loading.value = true;
+  syncLoading.value = true;
   try {
     const endpoint = isWorkspacePage.value 
       ? `/notion/page/${pageId}/sync` 
@@ -117,7 +125,7 @@ const triggerSync = async () => {
   } catch (error) {
     notify('同步请求失败', 'error');
   } finally {
-    loading.value = false;
+    syncLoading.value = false;
   }
 };
 
@@ -230,9 +238,9 @@ onMounted(fetchPageDetail);
               <Share2 :size="18" />
               <span>分享</span>
             </button>
-            <button @click="triggerSync" class="sync-btn ghost-btn" :disabled="loading">
-              <RefreshCw :size="18" :class="{ spinning: loading }" />
-              <span>重新同步</span>
+            <button @click="triggerSync" class="sync-btn ghost-btn" :disabled="syncLoading">
+              <RefreshCw :size="18" :class="{ spinning: syncLoading }" />
+              <span>{{ syncLoading ? '同步中...' : '重新同步' }}</span>
             </button>
           </div>
         </div>
@@ -244,12 +252,15 @@ onMounted(fetchPageDetail);
           <p>正在获取节点结构...</p>
         </div>
         
-        <div v-else-if="!synced" class="unsynced-state">
+        <div v-else-if="!isSynced" class="unsynced-state">
           <AlertTriangle :size="48" color="#f59e0b" />
           <h2>页面尚未同步</h2>
-          <p>{{ syncMessage }}</p>
+          <p>{{ errorMsg }}</p>
           <div class="actions">
-            <button @click="triggerSync" class="primary-btn">立即同步</button>
+            <button @click="triggerSync" class="primary-btn" :disabled="syncLoading">
+              <RefreshCw v-if="syncLoading" :size="18" class="spinning" />
+              <span>{{ syncLoading ? '同步中...' : '立即同步' }}</span>
+            </button>
             <button @click="goBack" class="ghost">返回</button>
           </div>
         </div>

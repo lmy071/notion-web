@@ -20,20 +20,25 @@ const authStore = useAuthStore();
 
 const dbResults = ref([]);
 const dbLoading = ref(false);
+const dbError = ref(null);
 
 const fetchDbData = async () => {
   if (props.block.type !== 'child_database') return;
   
   dbLoading.value = true;
+  dbError.value = null;
   try {
     const response = await api.get(`/notion/database/${props.block.id}/preview`, {
       headers: { 'x-user-id': authStore.userId }
     });
     if (response.data.success) {
       dbResults.value = response.data.results.slice(0, 10);
+    } else {
+      dbError.value = response.data.message;
     }
   } catch (error) {
     console.error('Fetch inline db data error:', error);
+    dbError.value = error.response?.data?.message || '获取数据失败';
   } finally {
     dbLoading.value = false;
   }
@@ -240,6 +245,9 @@ onMounted(() => {
           <div v-if="dbResults.length >= 10" class="preview-more" @click="goToPage(block.id, 'database')">
             查看更多...
           </div>
+        </div>
+        <div v-else-if="dbError" class="preview-error">
+          <span class="error-text">{{ dbError }}</span>
         </div>
         <div v-else class="preview-empty">
           暂无数据记录
@@ -596,13 +604,18 @@ blockquote {
   background: rgba(0, 0, 0, 0.2);
 }
 
-.preview-loading, .preview-empty {
+.preview-loading, .preview-empty, .preview-error {
   padding: 0.8rem;
   font-size: 0.85rem;
   color: var(--text-dim);
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.preview-error .error-text {
+  color: #ef4444;
+  font-style: italic;
 }
 
 .preview-list {
