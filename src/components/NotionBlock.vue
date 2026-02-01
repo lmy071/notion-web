@@ -352,10 +352,10 @@ onMounted(() => {
     </div>
 
     <!-- Recursive children rendering -->
-    <div 
-      v-if="block.children && block.children.length > 0 && !['table', 'column_list', 'column', 'synced_block'].includes(block.type)" 
-      class="nested-blocks" 
-      :class="{ 'is-toggle-content': block.type === 'toggle', 'is-template': block.type === 'template' }"
+    <div
+        v-if="block.children && block.children.length > 0 && !['table', 'child_page', 'child_database', 'column_list', 'column', 'synced_block'].includes(block.type)"
+        class="nested-blocks"
+        :class="{ 'is-toggle-content': block.type === 'toggle', 'is-template': block.type === 'template' }"
     >
       <NotionBlock 
         v-for="child in block.children" 

@@ -26,6 +26,7 @@ const isWorkspacePage = computed(() => !route.params.databaseId);
 
 const blocks = ref([]);
 const pageTitle = ref('');
+const breadcrumbs = ref([]);
 const loading = ref(true);
 const synced = ref(true);
 const syncMessage = ref('');
@@ -70,6 +71,7 @@ const fetchPageDetail = async () => {
       if (response.data.synced) {
         blocks.value = response.data.data;
         pageTitle.value = response.data.title || '';
+        breadcrumbs.value = response.data.breadcrumbs || [];
       } else {
         synced.value = false;
         syncMessage.value = response.data.message;
@@ -153,6 +155,15 @@ const toggleShare = async () => {
   }
 };
 
+const goToBreadcrumb = (item) => {
+  if (item.type === 'database') {
+    router.push(`/data/${item.id}`);
+  } else {
+    // 无论是工作区页面还是普通页面详情，都使用 workspace-page-detail 路由
+    router.push(`/workspace/page/${item.id}`);
+  }
+};
+
 const copyShareLink = () => {
   if (!shareConfig.value?.share_token) return;
   
@@ -193,7 +204,26 @@ onMounted(fetchPageDetail);
         <div class="title-section">
           <Layout v-if="isWorkspacePage" :size="24" color="var(--primary)" />
           <FileText v-else :size="24" color="var(--primary)" />
-          <h1>{{ pageTitle || (isWorkspacePage ? '工作区页面分析' : '页面详情分析') }}</h1>
+          
+          <div class="breadcrumb-title">
+            <template v-if="breadcrumbs.length > 0">
+              <div 
+                v-for="(item, index) in breadcrumbs" 
+                :key="item.id" 
+                class="breadcrumb-item"
+              >
+                <span 
+                  class="breadcrumb-text" 
+                  :class="{ 'clickable': index < breadcrumbs.length - 1 }"
+                  @click="index < breadcrumbs.length - 1 ? goToBreadcrumb(item) : null"
+                >
+                  {{ item.title }}
+                </span>
+                <span v-if="index < breadcrumbs.length - 1" class="separator">/</span>
+              </div>
+            </template>
+            <h1 v-else>{{ pageTitle || (isWorkspacePage ? '工作区页面分析' : '页面详情分析') }}</h1>
+          </div>
           
           <div class="header-actions">
             <button @click="openShareModal" class="share-btn ghost-btn">
@@ -340,6 +370,43 @@ main {
 .title-section h1 {
   font-size: 1.5rem;
   letter-spacing: 2px;
+}
+
+.breadcrumb-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.breadcrumb-text {
+  font-size: 1.5rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: var(--text);
+}
+
+.breadcrumb-text.clickable {
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.breadcrumb-text.clickable:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.separator {
+  color: var(--text-dim);
+  font-size: 1.2rem;
+  opacity: 0.5;
 }
 
 .header-actions {
