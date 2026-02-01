@@ -1,7 +1,8 @@
 <script setup>
-import { defineProps } from 'vue';
+import { defineProps, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ExternalLink } from 'lucide-vue-next';
+import { ExternalLink, List, Loader2 } from 'lucide-vue-next';
+import { useAuthStore, api } from '../stores/auth';
 
 const props = defineProps({
   block: {
@@ -15,6 +16,38 @@ const props = defineProps({
 });
 
 const router = useRouter();
+const authStore = useAuthStore();
+
+const dbResults = ref([]);
+const dbLoading = ref(false);
+
+const fetchDbData = async () => {
+  if (props.block.type !== 'child_database') return;
+  
+  dbLoading.value = true;
+  try {
+    const response = await api.get(`/notion/database/${props.block.id}/preview`, {
+      headers: { 'x-user-id': authStore.userId }
+    });
+    if (response.data.success) {
+      dbResults.value = response.data.results.slice(0, 10);
+    }
+  } catch (error) {
+    console.error('Fetch inline db data error:', error);
+  } finally {
+    dbLoading.value = false;
+  }
+};
+
+const getPageTitle = (page) => {
+  if (!page || !page.properties) return '未命名';
+  // 查找类型为 title 的属性
+  const titleProp = Object.values(page.properties).find(p => p.type === 'title');
+  if (titleProp && titleProp.title && titleProp.title.length > 0) {
+    return titleProp.title.map(t => t.plain_text).join('');
+  }
+  return '未命名';
+};
 
 const goToPage = (id, type = 'page') => {
   if (!id) return;
@@ -56,6 +89,12 @@ const getFileUrl = (blockData) => {
 };
 
 const getImageUrl = (image) => getFileUrl(image);
+
+onMounted(() => {
+  if (props.block.type === 'child_database') {
+    fetchDbData();
+  }
+});
 </script>
 
 <template>
@@ -176,12 +215,35 @@ const getImageUrl = (image) => getFileUrl(image);
     <!-- Child Database -->
     <div 
       v-else-if="block.type === 'child_database'" 
-      class="child-database-block clickable"
-      @click="goToPage(block.id, 'database')"
+      class="child-database-block"
     >
-      <div class="child-database-header">
+      <div class="child-database-header clickable" @click="goToPage(block.id, 'database')">
         <span class="icon">🗂️</span>
         <span class="title">{{ block.child_database.title }}</span>
+      </div>
+      
+      <div class="child-database-preview glass">
+        <div v-if="dbLoading" class="preview-loading">
+          <Loader2 :size="16" class="spinning" />
+          <span>正在获取数据...</span>
+        </div>
+        <div v-else-if="dbResults.length > 0" class="preview-list">
+          <div 
+            v-for="item in dbResults" 
+            :key="item.id" 
+            class="preview-item clickable"
+            @click="goToPage(item.id, 'page')"
+          >
+            <span class="icon">�</span>
+            <span class="item-name">{{ getPageTitle(item) }}</span>
+          </div>
+          <div v-if="dbResults.length >= 10" class="preview-more" @click="goToPage(block.id, 'database')">
+            查看更多...
+          </div>
+        </div>
+        <div v-else class="preview-empty">
+          暂无数据记录
+        </div>
       </div>
     </div>
 
@@ -523,6 +585,64 @@ blockquote {
 .child-page-header .title, .child-database-header .title {
   font-weight: 500;
   color: var(--primary);
+}
+
+.child-database-preview {
+  margin-top: 0.5rem;
+  margin-left: 1.5rem;
+  border-radius: 8px;
+  padding: 0.5rem;
+  border: 1px solid rgba(56, 189, 248, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.preview-loading, .preview-empty {
+  padding: 0.8rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.preview-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.preview-item:hover {
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.item-name {
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preview-more {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.8rem;
+  color: var(--primary);
+  cursor: pointer;
+  text-align: right;
+  opacity: 0.8;
+}
+
+.preview-more:hover {
+  opacity: 1;
+  text-decoration: underline;
 }
 
 .notion-divider {
