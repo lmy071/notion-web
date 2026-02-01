@@ -26,6 +26,7 @@ const { databaseId, pageId } = route.params;
 const isWorkspacePage = computed(() => !databaseId);
 
 const blocks = ref([]);
+const pageTitle = ref('');
 const loading = ref(true);
 const synced = ref(true);
 const syncMessage = ref('');
@@ -66,6 +67,7 @@ const fetchPageDetail = async () => {
     if (response.data.success) {
       if (response.data.synced) {
         blocks.value = response.data.data;
+        pageTitle.value = response.data.title || '';
       } else {
         synced.value = false;
         syncMessage.value = response.data.message;
@@ -185,7 +187,7 @@ onMounted(fetchPageDetail);
         <div class="title-section">
           <Layout v-if="isWorkspacePage" :size="24" color="var(--primary)" />
           <FileText v-else :size="24" color="var(--primary)" />
-          <h1>{{ isWorkspacePage ? '工作区页面分析' : '页面详情分析' }}</h1>
+          <h1>{{ pageTitle || (isWorkspacePage ? '工作区页面分析' : '页面详情分析') }}</h1>
           
           <div class="header-actions">
             <button @click="openShareModal" class="share-btn ghost-btn">
