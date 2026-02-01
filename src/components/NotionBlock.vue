@@ -16,10 +16,15 @@ const props = defineProps({
 
 const router = useRouter();
 
-const goToPage = (pageId) => {
-  if (!pageId) return;
-  // 统一跳转到工作区详情页面，该页面支持展示任意 pageId 的内容
-  router.push(`/workspace/page/${pageId}`);
+const goToPage = (id, type = 'page') => {
+  if (!id) return;
+  if (type === 'database') {
+    // 跳转到数据库表格视图
+    router.push(`/data/${id}`);
+  } else {
+    // 统一跳转到工作区详情页面
+    router.push(`/workspace/page/${id}`);
+  }
 };
 
 const renderRichText = (richText) => {
@@ -160,7 +165,7 @@ const getImageUrl = (image) => getFileUrl(image);
     <div 
       v-else-if="block.type === 'child_page'" 
       class="child-page-block clickable"
-      @click="goToPage(block.id)"
+      @click="goToPage(block.id, 'page')"
     >
       <div class="child-page-header">
         <span class="icon">📄</span>
@@ -172,7 +177,7 @@ const getImageUrl = (image) => getFileUrl(image);
     <div 
       v-else-if="block.type === 'child_database'" 
       class="child-database-block clickable"
-      @click="goToPage(block.id)"
+      @click="goToPage(block.id, 'database')"
     >
       <div class="child-database-header">
         <span class="icon">🗂️</span>
@@ -240,7 +245,10 @@ const getImageUrl = (image) => getFileUrl(image);
     <div 
       v-else-if="block.type === 'link_to_page'" 
       class="child-page-block clickable"
-      @click="goToPage(block.link_to_page.page_id || block.link_to_page.database_id)"
+      @click="goToPage(
+        block.link_to_page.page_id || block.link_to_page.database_id, 
+        block.link_to_page.type === 'database_id' ? 'database' : 'page'
+      )"
     >
       <div class="child-page-header">
         <span class="icon">🔗</span>
