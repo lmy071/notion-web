@@ -44,11 +44,13 @@ const renderRichText = (richText) => {
   }).join('');
 };
 
-const getImageUrl = (image) => {
-  if (!image) return '';
-  const url = image.type === 'external' ? image.external.url : image.file.url;
+const getFileUrl = (blockData) => {
+  if (!blockData) return '';
+  const url = blockData.type === 'external' ? blockData.external.url : blockData.file.url;
   return url.trim().replace(/^[`'"]|[`'"]$/g, '');
 };
+
+const getImageUrl = (image) => getFileUrl(image);
 </script>
 
 <template>
@@ -201,6 +203,51 @@ const getImageUrl = (image) => {
       />
     </div>
 
+    <!-- Synced Block -->
+    <div v-else-if="block.type === 'synced_block'" class="synced-block">
+      <NotionBlock 
+        v-for="child in block.children" 
+        :key="child.id" 
+        :block="child" 
+        :level="level + 1"
+      />
+    </div>
+
+    <!-- Video -->
+    <div v-else-if="block.type === 'video'" class="video-block">
+      <video v-if="getFileUrl(block.video).endsWith('.mp4')" :src="getFileUrl(block.video)" controls></video>
+      <div v-else class="video-placeholder glass">
+        <span class="icon">🎥</span>
+        <a :href="getFileUrl(block.video)" target="_blank" class="notion-link">查看视频资源</a>
+      </div>
+      <p v-if="block.video.caption && block.video.caption.length > 0" class="caption" v-html="renderRichText(block.video.caption)"></p>
+    </div>
+
+    <!-- File / PDF / Audio -->
+    <a v-else-if="['file', 'pdf', 'audio'].includes(block.type)" :href="getFileUrl(block[block.type])" target="_blank" class="file-block glass">
+      <div class="file-info">
+        <span class="icon">
+          <template v-if="block.type === 'audio'">🎵</template>
+          <template v-else-if="block.type === 'pdf'">📕</template>
+          <template v-else>📎</template>
+        </span>
+        <span class="title">{{ block.type.toUpperCase() }} 文件</span>
+      </div>
+      <ExternalLink :size="16" />
+    </a>
+
+    <!-- Link to Page -->
+    <div 
+      v-else-if="block.type === 'link_to_page'" 
+      class="child-page-block clickable"
+      @click="goToPage(block.link_to_page.page_id || block.link_to_page.database_id)"
+    >
+      <div class="child-page-header">
+        <span class="icon">🔗</span>
+        <span class="title">链接到页面</span>
+      </div>
+    </div>
+
     <!-- Fallback for unsupported types -->
     <div v-else-if="block.type !== 'table_row'" class="unsupported-block">
       <span class="type-tag">[{{ block.type }}]</span>
@@ -209,7 +256,7 @@ const getImageUrl = (image) => {
 
     <!-- Recursive children rendering -->
     <div 
-      v-if="block.children && block.children.length > 0 && block.type !== 'table' && block.type !== 'child_page' && block.type !== 'child_database' && block.type !== 'column_list' && block.type !== 'column'" 
+      v-if="block.children && block.children.length > 0 && !['table', 'child_page', 'child_database', 'column_list', 'column', 'synced_block'].includes(block.type)" 
       class="nested-blocks" 
       :class="{ 'is-toggle-content': block.type === 'toggle' }"
     >
@@ -466,6 +513,68 @@ blockquote {
 .column-block {
   flex: 1;
   min-width: 0;
+}
+
+.video-block {
+  margin: 1.5rem 0;
+  width: 100%;
+}
+
+.video-block video {
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.video-placeholder {
+  padding: 2rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+}
+
+.file-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  transition: all 0.3s;
+}
+
+.file-block:hover {
+  border-color: var(--primary);
+  background: rgba(56, 189, 248, 0.05);
+  transform: translateY(-2px);
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.file-info .icon {
+  font-size: 1.5rem;
+}
+
+.file-info .title {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.synced-block {
+  border-left: 2px solid var(--primary);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  opacity: 0.9;
 }
 
 .unsupported-block {
