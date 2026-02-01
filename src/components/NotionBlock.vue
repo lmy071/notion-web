@@ -189,7 +189,7 @@ const getImageUrl = (image) => {
 
     <!-- Recursive children rendering -->
     <div 
-      v-if="block.children && block.children.length > 0 && block.type !== 'table'" 
+      v-if="block.children && block.children.length > 0 && block.type !== 'table' && block.type !== 'child_page' && block.type !== 'child_database'" 
       class="nested-blocks" 
       :class="{ 'is-toggle-content': block.type === 'toggle' }"
     >
