@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore, api } from '../stores/auth';
 import TechCard from '../components/TechCard.vue';
@@ -31,6 +31,12 @@ const loading = ref(true);
 const isSynced = ref(false);
 const syncLoading = ref(false);
 const errorMsg = ref('');
+
+// 分页相关状态
+const offset = ref(0);
+const limit = ref(50);
+const hasMore = ref(false);
+const loadingMore = ref(false);
 const synced = ref(true);
 const syncMessage = ref('');
 const notifications = ref([]);
@@ -55,11 +61,18 @@ const removeNotification = (id) => {
   notifications.value = notifications.value.filter(n => n.id !== id);
 };
 
-const fetchPageDetail = async () => {
+const fetchPageDetail = async (isLoadMore = false) => {
   const { databaseId, pageId } = route.params;
   if (!pageId) return;
   
-  loading.value = true;
+  if (!isLoadMore) {
+    loading.value = true;
+    offset.value = 0;
+    blocks.value = [];
+  } else {
+    loadingMore.value = true;
+  }
+
   isSynced.value = false;
   errorMsg.value = '';
   try {
@@ -68,19 +81,29 @@ const fetchPageDetail = async () => {
       : `/data/${databaseId}/page/${pageId}`;
       
     const response = await api.get(endpoint, {
+      params: {
+        offset: offset.value,
+        limit: limit.value
+      },
       headers: { 'x-user-id': authStore.userId }
     });
     
     if (response.data.success) {
       if (response.data.synced) {
-        blocks.value = response.data.data;
-        pageTitle.value = response.data.title || '';
-        breadcrumbs.value = response.data.breadcrumbs || [];
+        if (isLoadMore) {
+          blocks.value = [...blocks.value, ...response.data.data];
+        } else {
+          blocks.value = response.data.data;
+          pageTitle.value = response.data.title || '';
+          breadcrumbs.value = response.data.breadcrumbs || [];
+        }
+        
         isSynced.value = true;
+        hasMore.value = response.data.pagination?.has_more || false;
+        offset.value += response.data.data.length;
       } else {
         isSynced.value = false;
         errorMsg.value = response.data.message || '该页面尚未同步';
-        // 即使没同步，也可能返回了标题和面包屑
         pageTitle.value = response.data.title || '';
         breadcrumbs.value = response.data.breadcrumbs || [];
       }
@@ -92,6 +115,20 @@ const fetchPageDetail = async () => {
     notify('获取页面详情失败', 'error');
   } finally {
     loading.value = false;
+    loadingMore.value = false;
+  }
+};
+
+const handleScroll = () => {
+  if (loading.value || loadingMore.value || !hasMore.value) return;
+  
+  const scrollHeight = document.documentElement.scrollHeight;
+  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+  const clientHeight = document.documentElement.clientHeight;
+  
+  // 距离底部 100px 时触发加载
+  if (scrollTop + clientHeight >= scrollHeight - 100) {
+    fetchPageDetail(true);
   }
 };
 
@@ -118,6 +155,9 @@ const triggerSync = async () => {
     
     if (response.data.success) {
       notify('同步成功');
+      // 重置分页状态并重新获取第一页
+      offset.value = 0;
+      hasMore.value = false;
       await fetchPageDetail();
     } else {
       notify(response.data.message || '同步失败', 'error');
@@ -198,7 +238,14 @@ watch(
   }
 );
 
-onMounted(fetchPageDetail);
+onMounted(() => {
+  fetchPageDetail();
+  window.addEventListener('scroll', handleScroll);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll);
+});
 </script>
 
 <template>
@@ -280,6 +327,15 @@ onMounted(fetchPageDetail);
               :key="block.id" 
               :block="block" 
             />
+          </div>
+          
+          <div v-if="loadingMore" class="loading-more">
+            <RefreshCw :size="24" class="spinning" color="var(--primary)" />
+            <span>加载更多内容...</span>
+          </div>
+          
+          <div v-if="!hasMore && blocks.length > 0" class="no-more">
+            已加载全部内容
           </div>
         </div>
       </TechCard>
@@ -746,6 +802,21 @@ blockquote {
   height: 400px;
   gap: 1.5rem;
   color: var(--text-dim);
+}
+
+.loading-more, .no-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  padding: 2rem 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.no-more {
+  opacity: 0.5;
+  font-style: italic;
 }
 
 .unsynced-state h2 {
