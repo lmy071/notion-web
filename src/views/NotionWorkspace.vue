@@ -80,7 +80,7 @@ const syncWorkspace = async () => {
     });
     
     if (response.data.success) {
-      notify(`同步完成，共发现 ${response.data.count} 个对象`);
+      notify(response.data.message || `同步完成，共发现 ${response.data.count} 个对象`);
       await searchNotion();
     } else {
       notify(response.data.message || '同步失败', 'error');
