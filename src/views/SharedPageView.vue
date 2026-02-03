@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import axios from 'axios';
+import api from '../utils/api';
 import TechCard from '../components/TechCard.vue';
 import NotionBlock from '../components/NotionBlock.vue';
 import { 
@@ -19,14 +19,11 @@ const pageData = ref(null);
 const loading = ref(true);
 const error = ref(null);
 
-// 这里的 API 基础路径需要根据实际环境配置，通常是 /api
-const API_BASE = '/api';
-
 const fetchSharedPage = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const response = await axios.get(`${API_BASE}/public/shares/${token}`);
+    const response = await api.get(`/public/shares/${token}`);
     if (response.data.success) {
       pageData.value = response.data.data;
     } else {

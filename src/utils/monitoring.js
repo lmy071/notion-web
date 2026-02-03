@@ -1,8 +1,4 @@
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: '/api'
-});
+import api from './api';
 
 const report = async (type, event, data) => {
   const userId = localStorage.getItem('userId');
