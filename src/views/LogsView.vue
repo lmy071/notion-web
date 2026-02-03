@@ -19,10 +19,23 @@ const authStore = useAuthStore();
 const logs = ref([]);
 const loading = ref(false);
 
+// 过滤参数
+const filters = ref({
+  statusCode: '',
+  url: '',
+  isSuccess: ''
+});
+
 const fetchLogs = async () => {
   loading.value = true;
   try {
+    const params = {};
+    if (filters.value.statusCode) params.statusCode = filters.value.statusCode;
+    if (filters.value.url) params.url = filters.value.url;
+    if (filters.value.isSuccess !== '') params.isSuccess = filters.value.isSuccess;
+
     const response = await api.get('/logs', {
+      params,
       headers: { 'x-user-id': authStore.userId }
     });
     logs.value = response.data.data;
@@ -30,6 +43,15 @@ const fetchLogs = async () => {
     console.error('获取日志失败:', error);
   }
   loading.value = false;
+};
+
+const resetFilters = () => {
+  filters.value = {
+    statusCode: '',
+    url: '',
+    isSuccess: ''
+  };
+  fetchLogs();
 };
 
 const formatBody = (body) => {
@@ -61,6 +83,47 @@ onMounted(fetchLogs);
           <span>刷新实时日志</span>
         </button>
       </header>
+
+      <!-- 过滤器区域 -->
+      <div class="filter-section glass mb-6">
+        <div class="filter-grid">
+          <div class="filter-item">
+            <label>状态码</label>
+            <input 
+              v-model="filters.statusCode" 
+              type="text" 
+              placeholder="例如: 200, 404" 
+              @keyup.enter="fetchLogs"
+            />
+          </div>
+          <div class="filter-item">
+            <label>接口地址</label>
+            <input 
+              v-model="filters.url" 
+              type="text" 
+              placeholder="搜索 URL 关键字..." 
+              @keyup.enter="fetchLogs"
+            />
+          </div>
+          <div class="filter-item">
+            <label>成功状态</label>
+            <select v-model="filters.isSuccess" @change="fetchLogs">
+              <option value="">全部</option>
+              <option value="1">成功</option>
+              <option value="0">失败</option>
+            </select>
+          </div>
+          <div class="filter-actions">
+            <button @click="fetchLogs" class="primary-btn" :disabled="loading">
+              查询
+            </button>
+            <button @click="resetFilters" class="ghost-btn">
+              重置
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="logs-container glass">
         <div v-if="logs.length === 0" class="empty-logs">
           <Terminal :size="64" opacity="0.1" />
@@ -160,6 +223,91 @@ main {
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 2rem;
+}
+
+.filter-section {
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-item label {
+  font-size: 0.875rem;
+  color: var(--primary);
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+.filter-item input,
+.filter-item select {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+  color: var(--primary);
+  transition: all 0.2s;
+}
+
+.filter-item input:focus,
+.filter-item select:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.filter-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.primary-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.primary-btn:hover {
+  opacity: 0.9;
+}
+
+.primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ghost-btn {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ghost-btn:hover {
+  border-color: var(--primary);
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .logs-container {
