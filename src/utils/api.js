@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { StatusCode } from './constants';
+import { useNotificationStore } from '../stores/notification';
 
 /**
  * 前端全局 Axios 实例
@@ -9,10 +11,9 @@ const api = axios.create({
   timeout: 30000, // 30秒超时
 });
 
-// 请求拦截器：可以在这里统一添加 Token 等
+// 请求拦截器
 api.interceptors.request.use(
   (config) => {
-    // 如果需要全局注入某个 header，可以在这里处理
     return config;
   },
   (error) => {
@@ -20,14 +21,46 @@ api.interceptors.request.use(
   }
 );
 
-// 响应拦截器：统一处理错误提示或数据格式化
+// 响应拦截器
 api.interceptors.response.use(
   (response) => {
+    const res = response.data;
+    const notificationStore = useNotificationStore();
+
+    // 如果业务状态码不是 SUCCESS，则进行统一提示
+    if (res.code !== StatusCode.SUCCESS) {
+      // 特殊处理：未授权跳转登录（如果后续有登录页的话）
+      if (res.code === StatusCode.UNAUTHORIZED) {
+        console.warn('User unauthorized, please login.');
+        // router.push('/login');
+      }
+      
+      // 弹出错误提示
+      notificationStore.notify(res.message || '请求失败', 'error');
+      
+      // 如果需要让调用方捕获错误，可以 reject
+      // return Promise.reject(new Error(res.message || 'Error'));
+    }
+
     return response;
   },
   (error) => {
-    // 可以在这里做全局的错误通知
-    console.error('[API Error]:', error.response?.data?.message || error.message);
+    const notificationStore = useNotificationStore();
+    let message = '网络请求失败';
+
+    if (error.response) {
+      const res = error.response.data;
+      message = res.message || message;
+      
+      // 处理 HTTP 状态码
+      if (error.response.status === 401) {
+        console.warn('Unauthorized access');
+      }
+    } else if (error.code === 'ECONNABORTED') {
+      message = '请求超时，请稍后重试';
+    }
+
+    notificationStore.notify(message, 'error');
     return Promise.reject(error);
   }
 );

@@ -2,8 +2,8 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore, api } from '../stores/auth';
+import { useNotificationStore } from '../stores/notification';
 import TechCard from '../components/TechCard.vue';
-import TechToast from '../components/TechToast.vue';
 import { 
   Search, 
   FileText, 
@@ -18,25 +18,16 @@ import {
 
 const router = useRouter();
 const authStore = useAuthStore();
+const notificationStore = useNotificationStore();
 
 const query = ref('');
 const results = ref([]);
 const loading = ref(false);
 const bulkSyncLoading = ref(false);
 const syncLoading = ref({});
-const notifications = ref([]);
 const nextCursor = ref(null);
 const hasMore = ref(false);
 const isSynced = ref(true);
-
-const notify = (message, type = 'success') => {
-  const id = Date.now();
-  notifications.value.push({ id, message, type });
-};
-
-const removeNotification = (id) => {
-  notifications.value = notifications.value.filter(n => n.id !== id);
-};
 
 const searchNotion = async (isLoadMore = false) => {
   if (loading.value) return;
@@ -47,7 +38,6 @@ const searchNotion = async (isLoadMore = false) => {
       query: query.value
     };
     
-    // 改为默认从数据库获取
     const response = await api.get('/notion/workspace/list', {
       params,
       headers: { 'x-user-id': authStore.userId }
@@ -56,15 +46,11 @@ const searchNotion = async (isLoadMore = false) => {
     if (response.data.success) {
       results.value = response.data.data.results;
       isSynced.value = response.data.synced;
-      // 数据库分页逻辑暂未实现，这里重置分页状态
       nextCursor.value = null;
       hasMore.value = false;
-    } else {
-      notify(response.data.message || '获取列表失败', 'error');
     }
   } catch (error) {
     console.error('Fetch error:', error);
-    notify('获取列表失败', 'error');
   } finally {
     loading.value = false;
   }
@@ -80,14 +66,11 @@ const syncWorkspace = async () => {
     });
     
     if (response.data.success) {
-      notify(response.data.message || `同步完成，共发现 ${response.data.count} 个对象`);
+      notificationStore.notify(response.data.message || `同步完成，共发现 ${response.data.count} 个对象`);
       await searchNotion();
-    } else {
-      notify(response.data.message || '同步失败', 'error');
     }
   } catch (error) {
     console.error('Sync workspace error:', error);
-    notify('同步请求失败', 'error');
   } finally {
     bulkSyncLoading.value = false;
   }
@@ -119,7 +102,7 @@ const syncAndGoToDetail = async (item) => {
   }
   
   if (item.object !== 'page') {
-    notify('目前仅支持预览页面或数据库', 'info');
+    notificationStore.notify('目前仅支持预览页面或数据库', 'info');
     return;
   }
 
@@ -216,16 +199,6 @@ onMounted(() => {
         </button>
       </div>
     </main>
-
-    <div class="notifications-container">
-      <TechToast 
-        v-for="n in notifications" 
-        :key="n.id"
-        :message="n.message"
-        :type="n.type"
-        @close="removeNotification(n.id)"
-      />
-    </div>
   </div>
 </template>
 

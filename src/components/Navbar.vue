@@ -11,7 +11,8 @@ import {
   LogOut, 
   ChevronLeft,
   Database,
-  Layout
+  Layout,
+  Activity
 } from 'lucide-vue-next';
 
 const route = useRoute();
@@ -60,6 +61,16 @@ const handleAvatarError = () => {
 
 const goBack = () => {
   router.push('/');
+};
+
+const chartsOpen = ref(false);
+const goConsumption = () => {
+  chartsOpen.value = false;
+  router.push('/charts/consumption');
+};
+const goShopping = () => {
+  chartsOpen.value = false;
+  router.push('/charts/shopping');
 };
 </script>
 
@@ -111,6 +122,20 @@ const goBack = () => {
             <Settings :size="18" />
             <span>核心配置</span>
           </button>
+          <div class="dropdown">
+            <button @click="chartsOpen = !chartsOpen" class="ghost">
+              <Activity :size="18" />
+              <span>数据图表</span>
+            </button>
+            <div v-if="chartsOpen" class="dropdown-menu glass">
+              <button class="dropdown-item" @click="goConsumption">
+                <span>消费记录</span>
+              </button>
+              <button class="dropdown-item" @click="goShopping">
+                <span>购物清单</span>
+              </button>
+            </div>
+          </div>
         </template>
 
         <!-- 通用动作 -->
@@ -210,6 +235,37 @@ button {
 
 .profile-btn {
   padding-left: 0.4rem;
+}
+
+.dropdown {
+  position: relative;
+}
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+  border-radius: 8px;
+}
+.dropdown-item {
+  padding: 0.4rem 0.6rem;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.dropdown-item:hover {
+  color: var(--primary);
 }
 
 @media (max-width: 1000px) {

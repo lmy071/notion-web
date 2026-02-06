@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAuthStore, api } from '../stores/auth';
+import { useNotificationStore } from '../stores/notification';
 import { useRouter } from 'vue-router';
 import TechCard from '../components/TechCard.vue';
 import TechToast from '../components/TechToast.vue';
@@ -20,6 +21,7 @@ import {
 
 const router = useRouter();
 const authStore = useAuthStore();
+const notificationStore = useNotificationStore();
 const loading = ref(false);
 const formLoading = ref(false);
 const profileLoading = ref(false);
@@ -32,21 +34,11 @@ const user = ref({
   created_at: ''
 });
 
-const config = ref({
+const config = ref({ 
   apiKey: '',
   version: '2025-09-03',
   syncSchedule: ''
 });
-
-const notifications = ref([]);
-const notify = (message, type = 'success') => {
-  const id = Date.now();
-  notifications.value.push({ id, message, type });
-};
-
-const removeNotification = (id) => {
-  notifications.value = notifications.value.filter(n => n.id !== id);
-};
 
 const avatarError = ref(false);
 
@@ -83,7 +75,7 @@ const fetchData = async () => {
     }
   } catch (error) {
     console.error('获取数据失败:', error);
-    notify('获取个人信息失败', 'error');
+    notificationStore.notify('获取个人信息失败', 'error');
   }
   loading.value = false;
 };
@@ -99,13 +91,13 @@ const handleSaveProfile = async () => {
 
     if (response.data.success) {
       authStore.updateAvatar(user.value.avatar);
-      notify('个人资料已更新');
+      notificationStore.notify('个人资料已更新');
     } else {
-      notify(response.data.message || '更新失败', 'error');
+      notificationStore.notify(response.data.message || '更新失败', 'error');
     }
   } catch (error) {
     console.error('更新个人资料失败:', error);
-    notify('更新个人资料失败', 'error');
+    notificationStore.notify('更新个人资料失败', 'error');
   }
   profileLoading.value = false;
 };
@@ -119,12 +111,12 @@ const handleFileUpload = async (event) => {
   if (!file) return;
 
   if (!file.type.startsWith('image/')) {
-    notify('仅支持上传图片文件', 'error');
+    notificationStore.notify('仅支持上传图片文件', 'error');
     return;
   }
 
   if (file.size > 2 * 1024 * 1024) {
-    notify('文件大小不能超过 2MB', 'error');
+    notificationStore.notify('文件大小不能超过 2MB', 'error');
     return;
   }
 
@@ -145,11 +137,11 @@ const handleFileUpload = async (event) => {
       // 上传成功后自动保存到用户信息
       await handleSaveProfile();
     } else {
-      notify(response.data.message || '上传失败', 'error');
+      notificationStore.notify(response.data.message || '上传失败', 'error');
     }
   } catch (error) {
     console.error('上传头像失败:', error);
-    notify(error.response?.data?.message || '上传失败', 'error');
+    notificationStore.notify(error.response?.data?.message || '上传失败', 'error');
   } finally {
     profileLoading.value = false;
     // 清除 input 值，以便可以重复上传同一张图
@@ -169,13 +161,13 @@ const handleSave = async () => {
     });
 
     if (response.data.success) {
-      notify('个人信息及同步计划已更新');
+      notificationStore.notify('个人信息及同步计划已更新');
     } else {
-      notify(response.data.message || '保存失败', 'error');
+      notificationStore.notify(response.data.message || '保存失败', 'error');
     }
   } catch (error) {
     console.error('保存失败:', error);
-    notify(error.response?.data?.message || '服务器错误', 'error');
+    notificationStore.notify(error.response?.data?.message || '服务器错误', 'error');
   }
   formLoading.value = false;
 };
@@ -305,17 +297,6 @@ onMounted(fetchData);
     <div v-else class="loading-state">
       <div class="scanner"></div>
       <p>正在读取核心数据...</p>
-    </div>
-
-    <!-- 通知系统 -->
-    <div class="notifications-container">
-      <TechToast 
-        v-for="n in notifications" 
-        :key="n.id"
-        :message="n.message"
-        :type="n.type"
-        @close="removeNotification(n.id)"
-      />
     </div>
   </div>
 </template>
