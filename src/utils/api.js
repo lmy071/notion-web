@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { StatusCode } from './constants';
 import { useNotificationStore } from '../stores/notification';
+import { getActivePinia } from 'pinia';
 
 /**
  * 前端全局 Axios 实例
@@ -10,6 +11,17 @@ const api = axios.create({
   baseURL: '/api',
   timeout: 30000, // 30秒超时
 });
+
+const notify = (message, type = 'error') => {
+  try {
+    if (getActivePinia()) {
+      const store = useNotificationStore();
+      store.notify(message, type);
+      return;
+    }
+  } catch (_) {}
+  console.warn('[Notify]', type, message);
+};
 
 // 请求拦截器
 api.interceptors.request.use(
@@ -25,7 +37,6 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => {
     const res = response.data;
-    const notificationStore = useNotificationStore();
 
     // 如果业务状态码不是 SUCCESS，则进行统一提示
     if (res.code !== StatusCode.SUCCESS) {
@@ -36,7 +47,7 @@ api.interceptors.response.use(
       }
       
       // 弹出错误提示
-      notificationStore.notify(res.message || '请求失败', 'error');
+      notify(res.message || '请求失败', 'error');
       
       // 如果需要让调用方捕获错误，可以 reject
       // return Promise.reject(new Error(res.message || 'Error'));
@@ -45,7 +56,6 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    const notificationStore = useNotificationStore();
     let message = '网络请求失败';
 
     if (error.response) {
@@ -60,7 +70,7 @@ api.interceptors.response.use(
       message = '请求超时，请稍后重试';
     }
 
-    notificationStore.notify(message, 'error');
+    notify(message, 'error');
     return Promise.reject(error);
   }
 );
