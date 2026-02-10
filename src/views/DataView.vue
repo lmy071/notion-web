@@ -17,7 +17,8 @@ import {
   Plus,
   Trash2,
   X as XIcon,
-  ChevronRight
+  ChevronRight,
+  Trash
 } from 'lucide-vue-next';
 
 const route = useRoute();
@@ -152,6 +153,41 @@ const exportCSV = () => {
   notify('数据已导出为 CSV');
 };
 
+const clearTable = async () => {
+  if (data.value.length === 0) {
+    notify('数据表为空，无需清空', 'warning');
+    return;
+  }
+  
+  // 确认对话框
+  const confirmed = confirm(`确定要清空当前数据表的所有数据吗？\n\n此操作不可恢复！\n表名: ${getTableName()}`);
+  if (!confirmed) return;
+  
+  try {
+    const tableName = getTableName();
+    const response = await api.delete(`/tables/${tableName}/clear`, {
+      headers: { 'x-user-id': authStore.userId }
+    });
+    
+    if (response.data.success) {
+      notify('数据表已清空');
+      // 重新获取数据（此时应该为空）
+      fetchData(1);
+    } else {
+      notify(response.data.message || '清空失败', 'error');
+    }
+  } catch (error) {
+    const errorMsg = error.response?.data?.message || error.message || '清空数据失败';
+    notify(errorMsg, 'error');
+  }
+};
+
+const getTableName = () => {
+  // 根据当前路由和用户信息生成表名
+  // 格式: user_${userId}_notion_data_${databaseId}
+  return `user_${authStore.userId}_notion_data_${databaseId.replace(/-/g, '_')}`;
+};
+
 const handlePageChange = (page) => {
   if (page < 1 || page > totalPages.value) return;
   fetchData(page);
@@ -225,6 +261,10 @@ onMounted(() => fetchData(1));
           <button @click="exportCSV" class="ghost action-btn" title="导出 CSV">
             <Download :size="18" />
             <span>导出</span>
+          </button>
+          <button @click="clearTable" class="ghost action-btn danger" title="清空数据">
+            <Trash :size="18" />
+            <span>清空</span>
           </button>
         </div>
       </header>
@@ -452,6 +492,16 @@ main {
   color: var(--primary);
   border-color: var(--primary);
   box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+}
+
+.action-btn.danger {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.action-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
 }
 
 .advanced-search-panel {
