@@ -12,6 +12,8 @@ import NotionWorkspace from '../views/NotionWorkspace.vue';
 import SharedPageView from '../views/SharedPageView.vue';
 import ConsumptionRecordsView from '../views/ConsumptionRecordsView.vue';
 import ShoppingListView from '../views/ShoppingListView.vue';
+import ChartBuilderView from '../views/ChartBuilderView.vue';
+import ChartsManagementView from '../views/ChartsManagementView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -78,6 +80,24 @@ const router = createRouter({
       name: 'permissions',
       component: PermissionsView,
       meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/charts',
+      name: 'charts-management',
+      component: ChartsManagementView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/charts/builder',
+      name: 'chart-builder',
+      component: ChartBuilderView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/charts/builder/:id',
+      name: 'chart-builder-edit',
+      component: ChartBuilderView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/charts/consumption',

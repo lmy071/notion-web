@@ -19,7 +19,8 @@ import {
   Layout,
   Power,
   Key,
-  CheckCircle2
+  CheckCircle2,
+  BarChart2
 } from 'lucide-vue-next';
 
 const router = useRouter();
@@ -247,6 +248,10 @@ onMounted(() => {
           </div>
         </div>
         <div class="header-actions">
+          <button @click="router.push('/charts')" class="primary">
+            <BarChart2 :size="18" />
+            <span>图表管理</span>
+          </button>
           <button @click="triggerSyncAll" class="primary" :disabled="syncingAll">
             <RefreshCw :class="{ spinning: syncingAll }" :size="18" />
             {{ syncingAll ? '全量同步中...' : '全数据库同步' }}
