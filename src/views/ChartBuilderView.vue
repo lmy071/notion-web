@@ -205,7 +205,7 @@ const renderPreviewChart = (data) => {
     },
     xAxis: {
       type: 'category',
-      data: data.map(item => item[chartConfig.xAxis]),
+      data: data.map(item => item.name),
       axisLabel: {
         rotate: 45
       }
@@ -216,7 +216,7 @@ const renderPreviewChart = (data) => {
     series: [{
       name: chartConfig.yAxis,
       type: chartConfig.type,
-      data: data.map(item => item[chartConfig.yAxis]),
+      data: data.map(item => item.value),
       smooth: chartConfig.styling.smooth,
       itemStyle: {
         color: chartConfig.styling.colors[0]
