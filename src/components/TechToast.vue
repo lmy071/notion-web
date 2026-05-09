@@ -1,20 +1,21 @@
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-vue-next';
 
-const props = defineProps({
-  message: String,
-  type: {
-    type: String,
-    default: 'success' // success, error, info
-  },
-  duration: {
-    type: Number,
-    default: 3000
-  }
+interface Props {
+  message: string;
+  type?: 'success' | 'error' | 'info' | 'warning';
+  duration?: number;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  type: 'success',
+  duration: 3000
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits<{
+  (e: 'close'): void
+}>();
 const visible = ref(true);
 
 onMounted(() => {

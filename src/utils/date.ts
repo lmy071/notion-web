@@ -3,7 +3,7 @@
  * @param {Date|string|number} date 
  * @returns {string}
  */
-export function formatDate(date) {
+export function formatDate(date: Date | string | number | undefined | null): string {
   if (!date) return '';
   const d = new Date(date);
   if (isNaN(d.getTime())) return String(date);

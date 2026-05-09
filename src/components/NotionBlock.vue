@@ -1,18 +1,16 @@
-<script setup>
-import { defineProps, ref, onMounted } from 'vue';
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ExternalLink, List, Loader2 } from 'lucide-vue-next';
 import { useAuthStore, api } from '../stores/auth';
 
-const props = defineProps({
-  block: {
-    type: Object,
-    required: true
-  },
-  level: {
-    type: Number,
-    default: 0
-  }
+interface Props {
+  block: any;
+  level?: number;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  level: 0
 });
 
 const router = useRouter();
@@ -65,10 +63,19 @@ const goToPage = (id, type = 'page') => {
   }
 };
 
-const renderRichText = (richText) => {
+const escapeHtml = (unsafe: string) => {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+const renderRichText = (richText: any[]) => {
   if (!richText || !Array.isArray(richText)) return '';
   return richText.map(t => {
-    let content = t.plain_text || '';
+    let content = escapeHtml(t.plain_text || '');
     if (!content) return '';
     
     if (t.annotations) {
@@ -82,7 +89,10 @@ const renderRichText = (richText) => {
       }
     }
     
-    if (t.href) content = `<a href="${t.href}" target="_blank" class="notion-link">${content}</a>`;
+    if (t.href) {
+      const safeHref = escapeHtml(t.href);
+      content = `<a href="${safeHref}" target="_blank" class="notion-link" rel="noopener noreferrer">${content}</a>`;
+    }
     return content;
   }).join('');
 };

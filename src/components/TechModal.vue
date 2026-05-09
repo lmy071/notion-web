@@ -1,12 +1,16 @@
-<script setup>
+<script setup lang="ts">
 import { X } from 'lucide-vue-next';
 
-defineProps({
-  show: Boolean,
-  title: String
-});
+interface Props {
+  show: boolean;
+  title?: string;
+}
 
-defineEmits(['close']);
+defineProps<Props>();
+
+defineEmits<{
+  (e: 'close'): void
+}>();
 </script>
 
 <template>

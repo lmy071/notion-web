@@ -1,9 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import TechCard from '../components/TechCard.vue';
-import { ShieldAlert, Lock, User, UserPlus } from 'lucide-vue-next';
+import TechButton from '../components/TechButton.vue';
+import TechInput from '../components/TechInput.vue';
+import { User, Lock, UserPlus } from 'lucide-vue-next';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -24,16 +26,21 @@ const handleRegister = async () => {
   error.value = '';
   successMsg.value = '';
   
-  const result = await authStore.register(username.value, password.value);
-  if (result.success) {
-    successMsg.value = '身份已建立。正在重定向...';
-    setTimeout(() => {
-      router.push('/login');
-    }, 2000);
-  } else {
-    error.value = result.message;
+  try {
+    const result = await authStore.register(username.value, password.value);
+    if (result.success) {
+      successMsg.value = '身份已建立。正在重定向...';
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+    } else {
+      error.value = result.message || '注册失败';
+    }
+  } catch (err: any) {
+    error.value = err.message || '系统繁忙，请稍后再试';
+  } finally {
+    loading.value = false;
   }
-  loading.value = false;
 };
 </script>
 
@@ -51,42 +58,42 @@ const handleRegister = async () => {
         </div>
 
         <form @submit.prevent="handleRegister" class="login-form">
-          <div class="input-group">
-            <User class="input-icon" :size="20" />
-            <input 
-              v-model="username" 
-              type="text" 
-              placeholder="新操作员 ID" 
-              required
-            />
-          </div>
+          <TechInput
+            v-model="username"
+            placeholder="新操作员 ID"
+            :icon="User"
+            required
+            :disabled="loading"
+          />
 
-          <div class="input-group">
-            <Lock class="input-icon" :size="20" />
-            <input 
-              v-model="password" 
-              type="password" 
-              placeholder="访问代码" 
-              required
-            />
-          </div>
+          <TechInput
+            v-model="password"
+            type="password"
+            placeholder="访问代码"
+            :icon="Lock"
+            required
+            :disabled="loading"
+          />
 
-          <div class="input-group">
-            <Lock class="input-icon" :size="20" />
-            <input 
-              v-model="confirmPassword" 
-              type="password" 
-              placeholder="确认访问代码" 
-              required
-            />
-          </div>
+          <TechInput
+            v-model="confirmPassword"
+            type="password"
+            placeholder="确认访问代码"
+            :icon="Lock"
+            required
+            :disabled="loading"
+          />
 
           <p v-if="error" class="error-msg">{{ error }}</p>
           <p v-if="successMsg" class="success-msg">{{ successMsg }}</p>
 
-          <button type="submit" class="primary login-btn" :disabled="loading">
-            {{ loading ? '注册中...' : '建立身份' }}
-          </button>
+          <TechButton
+            type="submit"
+            class="login-btn"
+            :loading="loading"
+          >
+            建立身份
+          </TechButton>
         </form>
 
         <div class="footer">

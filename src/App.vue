@@ -1,7 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { RouterView } from 'vue-router';
 import Navbar from './components/Navbar.vue';
 import TechToast from './components/TechToast.vue';
+import ErrorBoundary from './components/ErrorBoundary.vue';
 import { useNotificationStore } from './stores/notification';
 
 const notificationStore = useNotificationStore();
@@ -9,7 +10,9 @@ const notificationStore = useNotificationStore();
 
 <template>
   <Navbar />
-  <RouterView />
+  <ErrorBoundary>
+    <RouterView />
+  </ErrorBoundary>
   
   <!-- 全局通知容器 -->
   <div class="global-notifications">

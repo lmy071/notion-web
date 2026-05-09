@@ -1,11 +1,23 @@
 import { defineStore } from 'pinia';
 
+export type NotificationType = 'success' | 'warning' | 'error' | 'info';
+
+interface Notification {
+    id: number;
+    message: string;
+    type: NotificationType;
+}
+
+interface NotificationState {
+    notifications: Notification[];
+}
+
 export const useNotificationStore = defineStore('notification', {
-    state: () => ({
+    state: (): NotificationState => ({
         notifications: []
     }),
     actions: {
-        notify(message, type = 'success', duration = 3000) {
+        notify(message: string, type: NotificationType = 'success', duration = 3000) {
             const id = Date.now();
             this.notifications.push({ id, message, type });
             
@@ -15,7 +27,7 @@ export const useNotificationStore = defineStore('notification', {
                 }, duration);
             }
         },
-        remove(id) {
+        remove(id: number) {
             this.notifications = this.notifications.filter(n => n.id !== id);
         }
     }

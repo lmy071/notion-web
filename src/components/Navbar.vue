@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
@@ -7,12 +7,10 @@ import {
   User, 
   Shield, 
   Terminal, 
-  Settings, 
   LogOut, 
   ChevronLeft,
   Database,
   Layout,
-  Activity
 } from 'lucide-vue-next';
 
 const route = useRoute();
@@ -47,7 +45,7 @@ const handleLogout = () => {
   router.push('/login');
 };
 
-const getAvatarUrl = (url) => {
+const getAvatarUrl = (url: string | null | undefined) => {
   avatarError.value = false;
   if (!url) return null;
   if (url.startsWith('http')) return url;

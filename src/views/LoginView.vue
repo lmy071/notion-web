@@ -1,8 +1,10 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import TechCard from '../components/TechCard.vue';
+import TechButton from '../components/TechButton.vue';
+import TechInput from '../components/TechInput.vue';
 import { Shield, Lock, User } from 'lucide-vue-next';
 
 const router = useRouter();
@@ -13,15 +15,25 @@ const loading = ref(false);
 const error = ref('');
 
 const handleLogin = async () => {
+  if (!username.value || !password.value) {
+    error.value = '请输入用户名和密码';
+    return;
+  }
+  
   loading.value = true;
   error.value = '';
-  const success = await authStore.login(username.value, password.value);
-  if (success.success) {
-    router.push('/');
-  } else {
-    error.value = '无效的用户名或密码';
+  try {
+    const success = await authStore.login(username.value, password.value);
+    if (success.success) {
+      router.push('/');
+    } else {
+      error.value = success.message || '无效的用户名或密码';
+    }
+  } catch (err: any) {
+    error.value = err.message || '系统繁忙，请稍后再试';
+  } finally {
+    loading.value = false;
   }
-  loading.value = false;
 };
 </script>
 
@@ -39,31 +51,32 @@ const handleLogin = async () => {
         </div>
 
         <form @submit.prevent="handleLogin" class="login-form">
-          <div class="input-group">
-            <User class="input-icon" :size="20" />
-            <input 
-              v-model="username" 
-              type="text" 
-              placeholder="操作员 ID" 
-              required
-            />
-          </div>
+          <TechInput
+            v-model="username"
+            placeholder="操作员 ID"
+            :icon="User"
+            required
+            :disabled="loading"
+          />
 
-          <div class="input-group">
-            <Lock class="input-icon" :size="20" />
-            <input 
-              v-model="password" 
-              type="password" 
-              placeholder="访问代码" 
-              required
-            />
-          </div>
+          <TechInput
+            v-model="password"
+            type="password"
+            placeholder="访问代码"
+            :icon="Lock"
+            required
+            :disabled="loading"
+          />
 
           <p v-if="error" class="error-msg">{{ error }}</p>
 
-          <button type="submit" class="primary login-btn" :disabled="loading">
-            {{ loading ? '初始化中...' : '建立链路' }}
-          </button>
+          <TechButton
+            type="submit"
+            class="login-btn"
+            :loading="loading"
+          >
+            建立链路
+          </TechButton>
         </form>
 
         <div class="footer">

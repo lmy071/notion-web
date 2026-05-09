@@ -1,0 +1,138 @@
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
+import LoginView from '../views/LoginView.vue';
+import RegisterView from '../views/RegisterView.vue';
+import DashboardView from '../views/DashboardView.vue';
+import LogsView from '../views/LogsView.vue';
+import DataView from '../views/DataView.vue';
+import PermissionsView from '../views/PermissionsView.vue';
+import ProfileView from '../views/ProfileView.vue';
+import PageDetailView from '../views/PageDetailView.vue';
+import DataPreviewView from '../views/DataPreviewView.vue';
+import NotionWorkspace from '../views/NotionWorkspace.vue';
+import SharedPageView from '../views/SharedPageView.vue';
+import ConsumptionRecordsView from '../views/ConsumptionRecordsView.vue';
+import ShoppingListView from '../views/ShoppingListView.vue';
+import ChartBuilderView from '../views/ChartBuilderView.vue';
+import ChartsManagementView from '../views/ChartsManagementView.vue';
+
+const routes: Array<RouteRecordRaw> = [
+  {
+    path: '/login',
+    name: 'login',
+    component: LoginView
+  },
+  {
+    path: '/register',
+    name: 'register',
+    component: RegisterView
+  },
+  {
+    path: '/profile',
+    name: 'profile',
+    component: ProfileView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/share/:token',
+    name: 'public-share',
+    component: SharedPageView
+  },
+  {
+    path: '/workspace',
+    name: 'workspace',
+    component: NotionWorkspace,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/workspace/page/:pageId',
+    name: 'workspace-page-detail',
+    component: PageDetailView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/workspace/database/:databaseId/preview',
+    name: 'database-preview',
+    component: DataPreviewView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/logs',
+    name: 'logs',
+    component: LogsView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/data/:databaseId',
+    name: 'data-view',
+    component: DataView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/data/:databaseId/page/:pageId',
+    name: 'page-detail',
+    component: PageDetailView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/permissions',
+    name: 'permissions',
+    component: PermissionsView,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/charts',
+    name: 'charts-management',
+    component: ChartsManagementView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/charts/builder',
+    name: 'chart-builder',
+    component: ChartBuilderView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/charts/builder/:id',
+    name: 'chart-builder-edit',
+    component: ChartBuilderView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/charts/consumption',
+    name: 'charts-consumption',
+    component: ConsumptionRecordsView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/charts/shopping',
+    name: 'charts-shopping',
+    component: ShoppingListView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/',
+    name: 'dashboard',
+    component: DashboardView,
+    meta: { requiresAuth: true }
+  }
+];
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes
+});
+
+router.beforeEach((to, from, next) => {
+  const userId = localStorage.getItem('userId');
+  const role = localStorage.getItem('role');
+  
+  if (to.meta.requiresAuth && !userId) {
+    next({ name: 'login' });
+  } else if (to.meta.requiresAdmin && role !== 'admin') {
+    next({ name: 'dashboard' });
+  } else {
+    next();
+  }
+});
+
+export default router;

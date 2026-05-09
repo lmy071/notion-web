@@ -1,6 +1,7 @@
+import type { App } from 'vue';
 import api from './api';
 
-const report = async (type, event, data) => {
+const report = async (type: string, event: string, data: any) => {
   const userId = localStorage.getItem('userId');
   try {
     await api.post('/monitoring', {
@@ -18,7 +19,7 @@ const report = async (type, event, data) => {
   }
 };
 
-export const initMonitoring = (app) => {
+export const initMonitoring = (app: App) => {
   // 1. 性能监控
   window.addEventListener('load', () => {
     // 延迟上报，确保数据稳定
@@ -33,7 +34,7 @@ export const initMonitoring = (app) => {
       };
       
       // 使用更现代的 PerformanceObserver 获取 Paint 数据
-      const paintMetrics = {};
+      const paintMetrics: Record<string, number> = {};
       const paintEntries = performance.getEntriesByType('paint');
       paintEntries.forEach(entry => {
         paintMetrics[entry.name] = entry.startTime;
@@ -64,7 +65,7 @@ export const initMonitoring = (app) => {
 
   // 4. Vue 错误捕获
   if (app) {
-    app.config.errorHandler = (err, vm, info) => {
+    app.config.errorHandler = (err: any, vm, info) => {
       report('error', 'vue_error', {
         message: err.message,
         stack: err.stack,

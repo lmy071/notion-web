@@ -1,14 +1,15 @@
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useMouseInElement } from '@vueuse/core';
 
-const target = ref(null);
-const { elementX, elementY, isOutside, elementHeight, elementWidth } = useMouseInElement(target);
+const target = ref<HTMLElement | null>(null);
+const { elementX, elementY, isOutside } = useMouseInElement(target);
 
 const glowStyle = ref({
   opacity: 0,
   left: '0px',
-  top: '0px'
+  top: '0px',
+  background: ''
 });
 
 const handleMouseMove = () => {
